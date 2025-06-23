@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { WorkflowExecution } from '../pages/Index';
-import { TrendingUp, Target, AlertTriangle, Search, Filter, Eye, EyeOff, BarChart3, PieChart, Users, Trophy, Activity, ChevronDown, MessageSquare, Clock } from 'lucide-react';
+import { TrendingUp, Target, AlertTriangle, Search, Filter, Eye, EyeOff, BarChart3, PieChart, Users, Trophy, Activity, ChevronDown, MessageSquare, Clock, Bell, FileText } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
 
@@ -78,67 +77,135 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
   // Generate metric cards based on real workflow data from database
   const generateMetricCards = (executions: WorkflowExecution[]): MetricCard[] => {
     const cards: MetricCard[] = [];
-    
-    // Total Executions - count of all executions
-    const totalExecutions = executions.length;
-    if (totalExecutions > 0) {
-      cards.push({
-        title: 'Total Executions',
-        value: totalExecutions,
-        subtitle: 'All workflow runs',
-        trend: 'up',
-        icon: Activity,
-        color: '#3b82f6'
-      });
-    }
+    const successfulExecutions = executions.filter(exec => exec.status === 'success' && exec.result);
 
-    // Successful Executions - count of successful runs
-    const successfulExecutions = executions.filter(exec => exec.status === 'success').length;
-    if (successfulExecutions > 0) {
+    // Count notifications sent (from notification workflows)
+    const notificationExecutions = successfulExecutions.filter(exec => 
+      exec.workflowName.toLowerCase().includes('notification') || 
+      exec.workflowName.toLowerCase().includes('email') ||
+      exec.workflowName.toLowerCase().includes('send')
+    );
+    
+    // Count total notifications from results
+    let totalNotifications = 0;
+    notificationExecutions.forEach(exec => {
+      if (exec.result) {
+        // Try to extract number from result
+        const resultStr = typeof exec.result === 'string' ? exec.result : JSON.stringify(exec.result);
+        const numbers = resultStr.match(/\d+/g);
+        if (numbers) {
+          totalNotifications += parseInt(numbers[0]) || 1;
+        } else {
+          totalNotifications += 1; // Count execution as 1 notification
+        }
+      }
+    });
+
+    if (totalNotifications > 0) {
       cards.push({
-        title: 'Successful Runs',
-        value: successfulExecutions,
-        subtitle: 'Completed successfully',
+        title: 'Notifications Sent',
+        value: totalNotifications,
+        subtitle: `${notificationExecutions.length} workflow runs`,
         trend: 'up',
-        icon: Trophy,
+        icon: Bell,
         color: '#10b981'
       });
     }
 
-    // Failed Executions - count of failed runs
-    const failedExecutions = executions.filter(exec => exec.status === 'failed').length;
-    if (failedExecutions > 0) {
+    // Count generated reports (from report workflows)
+    const reportExecutions = successfulExecutions.filter(exec => 
+      exec.workflowName.toLowerCase().includes('report') || 
+      exec.workflowName.toLowerCase().includes('generate')
+    );
+    
+    let totalReports = 0;
+    reportExecutions.forEach(exec => {
+      if (exec.result) {
+        const resultStr = typeof exec.result === 'string' ? exec.result : JSON.stringify(exec.result);
+        const numbers = resultStr.match(/\d+/g);
+        if (numbers) {
+          totalReports += parseInt(numbers[0]) || 1;
+        } else {
+          totalReports += 1;
+        }
+      }
+    });
+
+    if (totalReports > 0) {
       cards.push({
-        title: 'Failed Runs',
-        value: failedExecutions,
-        subtitle: 'Execution failures',
-        trend: 'down',
-        icon: AlertTriangle,
-        color: '#ef4444'
+        title: 'Reports Generated',
+        value: totalReports,
+        subtitle: `${reportExecutions.length} workflow runs`,
+        trend: 'up',
+        icon: FileText,
+        color: '#3b82f6'
       });
     }
 
-    // Average Execution Time - from duration field
-    const completedExecutions = executions.filter(exec => exec.duration && exec.duration > 0);
-    if (completedExecutions.length > 0) {
-      const avgDuration = Math.round(
-        completedExecutions.reduce((sum, exec) => sum + (exec.duration || 0), 0) / completedExecutions.length
-      );
-      const avgSeconds = (avgDuration / 1000).toFixed(1);
-      
+    // Count tracked influencers (from influencer workflows)
+    const influencerExecutions = successfulExecutions.filter(exec => 
+      exec.workflowName.toLowerCase().includes('influencer') || 
+      exec.workflowName.toLowerCase().includes('social')
+    );
+    
+    let totalInfluencers = 0;
+    influencerExecutions.forEach(exec => {
+      if (exec.result) {
+        const resultStr = typeof exec.result === 'string' ? exec.result : JSON.stringify(exec.result);
+        const numbers = resultStr.match(/\d+/g);
+        if (numbers) {
+          totalInfluencers += parseInt(numbers[0]) || 1;
+        } else {
+          totalInfluencers += 1;
+        }
+      }
+    });
+
+    if (totalInfluencers > 0) {
       cards.push({
-        title: 'Avg Duration',
-        value: `${avgSeconds}s`,
-        subtitle: `${completedExecutions.length} completed runs`,
-        trend: 'stable',
-        icon: Clock,
-        color: '#f59e0b'
+        title: 'Influencers Tracked',
+        value: totalInfluencers,
+        subtitle: `${influencerExecutions.length} workflow runs`,
+        trend: 'up',
+        icon: Users,
+        color: '#8b5cf6'
+      });
+    }
+
+    // Count competitors analyzed (from competitor workflows)
+    const competitorExecutions = successfulExecutions.filter(exec => 
+      exec.workflowName.toLowerCase().includes('competitor') || 
+      exec.workflowName.toLowerCase().includes('competition')
+    );
+    
+    let totalCompetitors = 0;
+    competitorExecutions.forEach(exec => {
+      if (exec.result) {
+        const resultStr = typeof exec.result === 'string' ? exec.result : JSON.stringify(exec.result);
+        const numbers = resultStr.match(/\d+/g);
+        if (numbers) {
+          totalCompetitors += parseInt(numbers[0]) || 1;
+        } else {
+          totalCompetitors += 1;
+        }
+      }
+    });
+
+    if (totalCompetitors > 0) {
+      cards.push({
+        title: 'Competitors Analyzed',
+        value: totalCompetitors,
+        subtitle: `${competitorExecutions.length} workflow runs`,
+        trend: 'up',
+        icon: Target,
+        color: '#ef4444'
       });
     }
 
     return cards;
   };
 
+  // Generate insight summaries based on real workflow data from database
   const generateInsightSummaries = (executions: WorkflowExecution[]): InsightSummary[] => {
     const summaries: InsightSummary[] = [];
     const successfulExecutions = executions.filter(exec => exec.status === 'success' && exec.result);
@@ -362,7 +429,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
                         className="p-2 rounded-lg mb-2"
                         style={{ backgroundColor: `${card.color}20` }}
                       >
-                        <Icon className="h-5 w-5" color={card.color} />
+                        <Icon className="h-5 w-5" style={{ color: card.color }} />
                       </div>
                       {getTrendIcon(card.trend)}
                     </div>
@@ -531,7 +598,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
                         className="p-2 rounded-lg"
                         style={{ backgroundColor: `${summary.color}20` }}
                       >
-                        <Icon className="h-6 w-6" color={summary.color} />
+                        <Icon className="h-6 w-6" style={{ color: summary.color }} />
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900">{summary.title}</h3>
