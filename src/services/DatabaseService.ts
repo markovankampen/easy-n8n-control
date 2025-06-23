@@ -1,9 +1,9 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Workflow, WorkflowExecution } from "../pages/Index";
 
 export class DatabaseService {
   static async getWorkflows(): Promise<Workflow[]> {
+    console.log('Fetching workflows from database...');
     const { data, error } = await supabase
       .from('workflows')
       .select('*')
@@ -14,10 +14,12 @@ export class DatabaseService {
       return [];
     }
 
+    console.log('Fetched workflows:', data?.length || 0);
     return data.map(this.mapDatabaseToWorkflow);
   }
 
   static async getExecutions(): Promise<WorkflowExecution[]> {
+    console.log('Fetching executions from database...');
     const { data, error } = await supabase
       .from('workflow_executions')
       .select('*')
@@ -28,6 +30,7 @@ export class DatabaseService {
       return [];
     }
 
+    console.log('Fetched executions:', data?.length || 0);
     return data.map(this.mapDatabaseToExecution);
   }
 
@@ -145,15 +148,27 @@ export class DatabaseService {
   static async deleteWorkflow(workflowId: string): Promise<void> {
     console.log('Deleting workflow from database:', { workflowId });
 
-    // The foreign key constraint with CASCADE will automatically delete related executions
-    const { error } = await supabase
+    // First delete all related executions explicitly
+    const { error: executionError } = await supabase
+      .from('workflow_executions')
+      .delete()
+      .eq('workflow_id', workflowId);
+
+    if (executionError) {
+      console.error('Error deleting workflow executions:', executionError);
+    } else {
+      console.log('Successfully deleted workflow executions');
+    }
+
+    // Then delete the workflow
+    const { error: workflowError } = await supabase
       .from('workflows')
       .delete()
       .eq('id', workflowId);
 
-    if (error) {
-      console.error('Error deleting workflow:', error);
-      throw error;
+    if (workflowError) {
+      console.error('Error deleting workflow:', workflowError);
+      throw workflowError;
     }
 
     console.log('Workflow deleted successfully from database');

@@ -54,23 +54,20 @@ const Index = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      console.log('Loading dashboard data...');
       const [workflowsData, executionsData] = await Promise.all([
         DatabaseService.getWorkflows(),
         DatabaseService.getExecutions()
       ]);
       
-      // Establish initial order if not set, or maintain existing order for known workflows
-      if (workflowOrder.length === 0) {
-        setWorkflowOrder(workflowsData.map(w => w.id));
-      } else {
-        // Add any new workflows to the end while preserving existing order
-        const newWorkflowIds = workflowsData
-          .map(w => w.id)
-          .filter(id => !workflowOrder.includes(id));
-        if (newWorkflowIds.length > 0) {
-          setWorkflowOrder(prev => [...prev, ...newWorkflowIds]);
-        }
-      }
+      console.log('Loaded workflows:', workflowsData.length);
+      console.log('Loaded executions:', executionsData.length);
+      
+      // Update workflow order, removing deleted workflows and adding new ones
+      const currentWorkflowIds = workflowsData.map(w => w.id);
+      const filteredOrder = workflowOrder.filter(id => currentWorkflowIds.includes(id));
+      const newWorkflowIds = currentWorkflowIds.filter(id => !workflowOrder.includes(id));
+      setWorkflowOrder([...filteredOrder, ...newWorkflowIds]);
       
       setWorkflows(workflowsData);
       setExecutions(executionsData);
@@ -173,13 +170,15 @@ const Index = () => {
         prev.map(exec => exec.id === execution.id ? execution : exec)
       );
       
-      // Reload workflows data to get updated statistics while preserving order
-      console.log('Reloading workflow statistics after execution');
-      const [workflowsData] = await Promise.all([
-        DatabaseService.getWorkflows()
-      ]);
-      
-      setWorkflows(workflowsData);
+      // Only reload workflows if the workflow still exists in the current state
+      if (workflows.find(w => w.id === workflowId)) {
+        console.log('Reloading workflow statistics after execution');
+        const [workflowsData] = await Promise.all([
+          DatabaseService.getWorkflows()
+        ]);
+        
+        setWorkflows(workflowsData);
+      }
 
       toast({
         title: execution.status === 'success' ? "Workflow Completed" : "Workflow Failed",
@@ -216,7 +215,16 @@ const Index = () => {
 
   const handleWorkflowUpdate = async (updatedWorkflows: Workflow[]) => {
     try {
+      console.log('Handling workflow update with', updatedWorkflows.length, 'workflows');
+      
+      // Update local state immediately
       setWorkflows(updatedWorkflows);
+      
+      // Update workflow order to reflect current workflows
+      const currentWorkflowIds = updatedWorkflows.map(w => w.id);
+      const filteredOrder = workflowOrder.filter(id => currentWorkflowIds.includes(id));
+      const newWorkflowIds = currentWorkflowIds.filter(id => !workflowOrder.includes(id));
+      setWorkflowOrder([...filteredOrder, ...newWorkflowIds]);
       
       // Also reload executions to ensure consistency
       const executionsData = await DatabaseService.getExecutions();
