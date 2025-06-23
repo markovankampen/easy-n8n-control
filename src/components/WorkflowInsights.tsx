@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -74,6 +73,89 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
     if (selectedWorkflow === 'all') return executions;
     return executions.filter(exec => exec.workflowId === selectedWorkflow);
   }, [executions, selectedWorkflow]);
+
+  // Parse workflow-specific data for visualization
+  const parseWorkflowData = (executions: WorkflowExecution[]) => {
+    const metrics: any[] = [];
+    const tables: any[] = [];
+    
+    executions.forEach(exec => {
+      if (exec.result && exec.status === 'success') {
+        try {
+          let parsedResult;
+          if (typeof exec.result === 'string') {
+            try {
+              parsedResult = JSON.parse(exec.result);
+            } catch {
+              parsedResult = exec.result;
+            }
+          } else {
+            parsedResult = exec.result;
+          }
+
+          // Check if result contains metrics (numbers, counts, etc.)
+          if (typeof parsedResult === 'object' && parsedResult !== null) {
+            Object.entries(parsedResult).forEach(([key, value]) => {
+              if (typeof value === 'number' || (typeof value === 'string' && !isNaN(Number(value)))) {
+                metrics.push({
+                  name: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                  value: Number(value),
+                  timestamp: exec.endTime || exec.startTime,
+                  execution: exec.id
+                });
+              } else if (Array.isArray(value) && value.length > 0) {
+                // Handle array data as table
+                tables.push({
+                  title: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                  data: value,
+                  timestamp: exec.endTime || exec.startTime,
+                  execution: exec.id
+                });
+              }
+            });
+          } else if (typeof parsedResult === 'string') {
+            // Extract numbers from string results
+            const numbers = parsedResult.match(/(\d+(?:\.\d+)?)/g);
+            if (numbers) {
+              numbers.forEach((num, index) => {
+                metrics.push({
+                  name: `Metric ${index + 1}`,
+                  value: Number(num),
+                  timestamp: exec.endTime || exec.startTime,
+                  execution: exec.id
+                });
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing workflow result:', error);
+        }
+      }
+    });
+
+    return { metrics, tables };
+  };
+
+  const { metrics, tables } = parseWorkflowData(filteredExecutions);
+
+  // Aggregate metrics by name for charting
+  const aggregatedMetrics = useMemo(() => {
+    const metricMap = new Map();
+    metrics.forEach(metric => {
+      if (!metricMap.has(metric.name)) {
+        metricMap.set(metric.name, []);
+      }
+      metricMap.get(metric.name).push(metric);
+    });
+
+    return Array.from(metricMap.entries()).map(([name, values]) => ({
+      name,
+      values: values.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
+      total: values.reduce((sum, v) => sum + v.value, 0),
+      average: values.reduce((sum, v) => sum + v.value, 0) / values.length,
+      latest: values[values.length - 1]?.value || 0
+    }));
+  }, [metrics]);
 
   // Generate metric cards based on real workflow data from database
   const generateMetricCards = (executions: WorkflowExecution[]): MetricCard[] => {
@@ -409,6 +491,57 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
     ? 'All Workflows' 
     : uniqueWorkflows.find(w => w.id === selectedWorkflow)?.name || 'Unknown';
 
+  const renderTable = (tableData: any) => {
+    if (!Array.isArray(tableData.data) || tableData.data.length === 0) return null;
+
+    const headers = Object.keys(tableData.data[0]);
+    
+    return (
+      <Card key={tableData.title}>
+        <CardHeader>
+          <CardTitle>{tableData.title}</CardTitle>
+          <CardDescription>
+            Data from execution on {new Date(tableData.timestamp).toLocaleString()}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {headers.map(header => (
+                    <TableHead key={header}>
+                      {header.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tableData.data.slice(0, 10).map((row: any, index: number) => (
+                  <TableRow key={index}>
+                    {headers.map(header => (
+                      <TableCell key={header}>
+                        {typeof row[header] === 'object' 
+                          ? JSON.stringify(row[header]) 
+                          : String(row[header])
+                        }
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {tableData.data.length > 10 && (
+              <p className="text-sm text-gray-500 mt-2">
+                Showing 10 of {tableData.data.length} rows
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Metric Cards - Above title */}
@@ -519,8 +652,86 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
         </Card>
       </div>
 
+      {/* Workflow-Specific Data Visualization */}
+      {selectedWorkflow !== 'all' && (
+        <div className="space-y-6">
+          {/* Metrics Charts */}
+          {aggregatedMetrics.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <BarChart3 className="h-5 w-5" />
+                    <span>Workflow Metrics</span>
+                  </CardTitle>
+                  <CardDescription>Metrics extracted from workflow execution results</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={chartConfig} className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={aggregatedMetrics}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="total" fill="#3b82f6" name="Total Value" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Target className="h-5 w-5" />
+                    <span>Latest Values</span>
+                  </CardTitle>
+                  <CardDescription>Most recent metric values from executions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={chartConfig} className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={aggregatedMetrics} layout="horizontal">
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis dataKey="name" type="category" width={100} />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="latest" fill="#10b981" name="Latest Value" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Tables */}
+          {tables.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Data Tables</h3>
+              {tables.map((table, index) => renderTable(table))}
+            </div>
+          )}
+
+          {/* No Data Message */}
+          {aggregatedMetrics.length === 0 && tables.length === 0 && (
+            <Card>
+              <CardContent className="text-center py-12">
+                <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Detailed Data Available</h3>
+                <p className="text-gray-500">
+                  No structured data found in the execution results for {selectedWorkflowName}. 
+                  Execute the workflow with structured output to see detailed visualizations.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* Overview Charts */}
-      {workflowDistribution.length > 0 && (
+      {workflowDistribution.length > 0 && selectedWorkflow === 'all' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Workflow Distribution */}
           <Card>
@@ -582,7 +793,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
       )}
 
       {/* Insight Summary Grid */}
-      {filteredSummaries.length > 0 && (
+      {filteredSummaries.length > 0 && selectedWorkflow === 'all' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredSummaries.map((summary) => {
             const Icon = summary.icon;
@@ -678,39 +889,41 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
       )}
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search insights..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+      {selectedWorkflow === 'all' && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search insights..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="sm:w-48">
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger>
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="competitor">Competitor Analysis</SelectItem>
+                    <SelectItem value="influencer">Influencer Insights</SelectItem>
+                    <SelectItem value="market">Market Research</SelectItem>
+                    <SelectItem value="performance">Performance</SelectItem>
+                    <SelectItem value="general">General</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div className="sm:w-48">
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger>
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="competitor">Competitor Analysis</SelectItem>
-                  <SelectItem value="influencer">Influencer Insights</SelectItem>
-                  <SelectItem value="market">Market Research</SelectItem>
-                  <SelectItem value="performance">Performance</SelectItem>
-                  <SelectItem value="general">General</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {filteredSummaries.length === 0 && metricCards.length === 0 && (
         <Card>
