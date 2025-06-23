@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -207,8 +208,7 @@
   }
 }
 
-// ... keep existing code (keyframes fadeIn, bounceIn, slideUp, floating, iconBounce, iconWiggle)
-
+/* Keyframes for animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
