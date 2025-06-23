@@ -8,13 +8,39 @@ export class WebhookService {
     try {
       console.log('Triggering workflow:', { webhookUrl, params });
       
-      const response = await fetch(webhookUrl, {
+      // First try POST request
+      let response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(params || {}),
       });
+
+      // If we get a 404 with the specific message about POST not being registered, try GET
+      if (!response.ok && response.status === 404) {
+        const errorText = await response.text();
+        if (errorText.includes('not registered for POST requests')) {
+          console.log('POST not supported, trying GET request');
+          
+          // Convert params to URL search params for GET request
+          const urlParams = new URLSearchParams();
+          if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+              urlParams.append(key, String(value));
+            });
+          }
+          
+          const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
+          
+          response = await fetch(getUrl, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        }
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -50,7 +76,8 @@ export class WebhookService {
         message: 'Connection test from N8N Dashboard'
       };
 
-      const response = await fetch(webhookUrl, {
+      // First try POST
+      let response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,8 +85,22 @@ export class WebhookService {
         body: JSON.stringify(testPayload),
       });
 
+      // If POST fails with 404, try GET
+      if (!response.ok && response.status === 404) {
+        const errorText = await response.text();
+        if (errorText.includes('not registered for POST requests')) {
+          console.log('POST not supported for test, trying GET request');
+          
+          response = await fetch(`${webhookUrl}?test=true&timestamp=${encodeURIComponent(new Date().toISOString())}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        }
+      }
+
       // Accept any response code as long as the request went through
-      // Some webhooks might return 404 or other codes but still be reachable
       console.log('Test response status:', response.status);
       
       return true;
