@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -405,56 +406,56 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
           </TabsContent>
 
           <TabsContent value="help" className="space-y-4">
-            <Card>
+            <Card className="bg-white">
               <CardHeader>
-                <CardTitle>N8N Setup Guide</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-black">N8N Setup Guide</CardTitle>
+                <CardDescription className="text-gray-700">
                   Step-by-step instructions for connecting your N8N workflows
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-6">
                   <div>
-                    <h3 className="font-semibold text-lg mb-3">1. Create Webhook in N8N</h3>
+                    <h3 className="font-semibold text-lg mb-3 text-black">1. Create Webhook in N8N</h3>
                     <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                      <p>• Open your N8N workflow editor</p>
-                      <p>• Add a "Webhook" node as the trigger</p>
-                      <p>• Set the HTTP method to "POST"</p>
-                      <p>• Copy the webhook URL from the node</p>
+                      <p className="text-black">• Open your N8N workflow editor</p>
+                      <p className="text-black">• Add a "Webhook" node as the trigger</p>
+                      <p className="text-black">• Set the HTTP method to "POST"</p>
+                      <p className="text-black">• Copy the webhook URL from the node</p>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-lg mb-3">2. Configure Response</h3>
+                    <h3 className="font-semibold text-lg mb-3 text-black">2. Configure Response</h3>
                     <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                      <p>• Add a "Respond to Webhook" node at the end</p>
-                      <p>• Set response format to JSON</p>
-                      <p>• Include status and result data</p>
+                      <p className="text-black">• Add a "Respond to Webhook" node at the end</p>
+                      <p className="text-black">• Set response format to JSON</p>
+                      <p className="text-black">• Include status and result data</p>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-lg mb-3">3. Test Connection</h3>
+                    <h3 className="font-semibold text-lg mb-3 text-black">3. Test Connection</h3>
                     <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                      <p>• Activate your N8N workflow</p>
-                      <p>• Paste the webhook URL in the configuration above</p>
-                      <p>• Use the test button to verify connectivity</p>
+                      <p className="text-black">• Activate your N8N workflow</p>
+                      <p className="text-black">• Paste the webhook URL in the configuration above</p>
+                      <p className="text-black">• Use the test button to verify connectivity</p>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-lg mb-3">4. Input Parameters (Optional)</h3>
+                    <h3 className="font-semibold text-lg mb-3 text-black">4. Input Parameters (Optional)</h3>
                     <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                      <p>• Access input data via expressions: <code className="bg-white px-1 rounded">{'{{$json.parameterName}}'}</code></p>
-                      <p>• Example: <code className="bg-white px-1 rounded">{'{{$json.message}}'}</code> for message input</p>
-                      <p>• Configure input schema in JSON format above</p>
+                      <p className="text-black">• Access input data via expressions: <code className="bg-white px-1 rounded text-black">{'{{$json.parameterName}}'}</code></p>
+                      <p className="text-black">• Example: <code className="bg-white px-1 rounded text-black">{'{{$json.message}}'}</code> for message input</p>
+                      <p className="text-black">• Configure input schema in JSON format above</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                  <h4 className="font-medium text-blue-900 mb-2">💡 Pro Tips</h4>
-                  <ul className="text-blue-800 space-y-1 text-sm">
+                  <h4 className="font-medium text-black mb-2">💡 Pro Tips</h4>
+                  <ul className="text-black space-y-1 text-sm">
                     <li>• Use HTTPS for webhook URLs in production</li>
                     <li>• Add error handling with "IF" nodes</li>
                     <li>• Test with different input parameters</li>
