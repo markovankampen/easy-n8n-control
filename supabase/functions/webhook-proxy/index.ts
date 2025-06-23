@@ -28,37 +28,64 @@ serve(async (req) => {
     console.log('Proxying webhook request:', { webhookUrl, method, params });
 
     let response;
+    let lastError = null;
     
     if (method === 'POST') {
       // Try POST request first
-      response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(params || {}),
-      });
-
-      // If we get a 404, try GET request instead
-      if (!response.ok && response.status === 404) {
-        console.log('POST failed with 404, trying GET request');
-        
-        // Convert params to URL search params for GET request
-        const urlParams = new URLSearchParams();
-        if (params) {
-          Object.entries(params).forEach(([key, value]) => {
-            urlParams.append(key, String(value));
-          });
-        }
-        
-        const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
-        
-        response = await fetch(getUrl, {
-          method: 'GET',
+      try {
+        response = await fetch(webhookUrl, {
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'User-Agent': 'N8N-Dashboard-Webhook-Proxy/1.0',
           },
+          body: JSON.stringify(params || {}),
         });
+
+        // If POST succeeds, use it
+        if (response.ok) {
+          console.log('POST request successful');
+        } else {
+          lastError = `POST failed with ${response.status}: ${response.statusText}`;
+          console.log(lastError);
+        }
+      } catch (error) {
+        lastError = `POST request failed: ${error.message}`;
+        console.log(lastError);
+        response = null;
+      }
+
+      // If POST didn't work, try GET
+      if (!response || !response.ok) {
+        console.log('Trying GET request as fallback');
+        
+        try {
+          // Convert params to URL search params for GET request
+          const urlParams = new URLSearchParams();
+          if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+              urlParams.append(key, String(value));
+            });
+          }
+          
+          const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
+          
+          response = await fetch(getUrl, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'User-Agent': 'N8N-Dashboard-Webhook-Proxy/1.0',
+            },
+          });
+
+          if (response.ok) {
+            console.log('GET request successful');
+          } else {
+            console.log(`GET also failed with ${response.status}: ${response.statusText}`);
+          }
+        } catch (error) {
+          console.log(`GET request failed: ${error.message}`);
+        }
       }
     } else if (method === 'GET') {
       // Handle GET request
@@ -75,32 +102,50 @@ serve(async (req) => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'User-Agent': 'N8N-Dashboard-Webhook-Proxy/1.0',
         },
       });
     }
 
-    if (!response.ok) {
-      console.error('Webhook request failed:', { 
-        status: response.status, 
-        statusText: response.statusText
+    if (!response || !response.ok) {
+      console.error('All webhook requests failed:', { 
+        status: response?.status || 'No response', 
+        statusText: response?.statusText || 'Network error',
+        lastError
       });
       
-      // Try to get error text, but handle the case where body might be empty
+      // Try to get error details
       let errorText = '';
       try {
-        errorText = await response.text();
+        if (response) {
+          errorText = await response.text();
+        }
       } catch (err) {
         console.log('Could not read error response body:', err);
         errorText = 'No error details available';
       }
       
+      // Provide helpful error messages based on common N8N issues
+      let userFriendlyError = '';
+      if (response?.status === 404) {
+        userFriendlyError = 'Webhook not found (404). Please check: 1) Is your N8N workflow activated? 2) Is the webhook URL correct? 3) If you connected nodes to your webhook trigger, the URL might have changed.';
+      } else if (response?.status === 500) {
+        userFriendlyError = 'N8N workflow execution error (500). Check your workflow for errors in the N8N interface.';
+      } else if (!response) {
+        userFriendlyError = 'Could not connect to webhook URL. Please verify the URL is accessible.';
+      } else {
+        userFriendlyError = `HTTP ${response.status}: ${response.statusText}`;
+      }
+      
       return new Response(
         JSON.stringify({ 
-          error: `HTTP ${response.status}: ${response.statusText}`,
-          details: errorText
+          error: userFriendlyError,
+          details: errorText,
+          status: response?.status || 0,
+          lastError
         }),
         { 
-          status: response.status, 
+          status: response?.status || 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
