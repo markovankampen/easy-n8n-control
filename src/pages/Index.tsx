@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { WorkflowPanel } from '../components/WorkflowPanel';
 import { StatusDisplay } from '../components/StatusDisplay';
@@ -373,9 +374,9 @@ const Index = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-400 to-orange-400 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mx-auto mb-4 shadow-lg"></div>
-          <p className="text-white font-semibold text-lg drop-shadow-lg">Loading dashboard...</p>
+        <div className="text-center animate-bounce-in">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mx-auto mb-4 shadow-lg hover-glow"></div>
+          <p className="text-white font-semibold text-lg drop-shadow-lg glow-text">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -388,24 +389,24 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4 group">
-              <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-3 rounded-xl shadow-lg transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
-                <Zap className="h-6 w-6 text-white animate-pulse" />
+              <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-3 rounded-xl shadow-lg card-hover floating">
+                <Zap className="h-6 w-6 text-white animate-pulse hover:animate-bounce" />
               </div>
-              <div className="transform transition-all duration-300 group-hover:translate-x-2">
-                <h1 className="text-xl font-bold text-white drop-shadow-lg">N8N Workflow Dashboard</h1>
-                <p className="text-sm text-blue-100 drop-shadow">Control and monitor your automation workflows</p>
+              <div className="hover:scale-105 transition-all duration-300">
+                <h1 className="text-xl font-bold text-white drop-shadow-lg hover:glow-text transition-all duration-300">N8N Workflow Dashboard</h1>
+                <p className="text-sm text-blue-100 drop-shadow hover:text-yellow-200 transition-colors duration-300">Control and monitor your automation workflows</p>
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="transform transition-all duration-300 hover:scale-105">
+              <div className="hover-scale animate-fade-in">
                 <StatusDisplay workflows={enhancedWorkflows} />
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsConfigOpen(true)}
-                className="flex items-center space-x-2 bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30 hover:scale-105 transform transition-all duration-300 shadow-lg"
+                className="flex items-center space-x-2 bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30 button-hover shadow-lg"
               >
                 <Settings className="h-4 w-4 transition-transform duration-300 hover:rotate-45" />
                 <span>Configure</span>
@@ -423,45 +424,49 @@ const Index = () => {
               onClick={() => setSelectedTab('control')}
               className={`${
                 selectedTab === 'control'
-                  ? 'border-yellow-300 text-yellow-200 bg-white/20 backdrop-blur-sm'
+                  ? 'border-yellow-300 text-yellow-200 bg-white/20 backdrop-blur-sm animate-pulse'
                   : 'border-transparent text-white/80 hover:text-white hover:border-white/50 hover:bg-white/10'
-              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg transform transition-all duration-300 hover:scale-105 hover:-translate-y-1 shadow-lg`}
+              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
+              style={{ animationDelay: '0.1s' }}
             >
-              <Zap className="h-4 w-4 transition-transform duration-300 hover:rotate-12" />
-              <span>Workflow Control</span>
+              <Zap className="h-4 w-4 transition-transform duration-300 hover:rotate-12 hover:scale-110" />
+              <span className="hover:rainbow-text transition-all duration-300">Workflow Control</span>
             </button>
             <button
               onClick={() => setSelectedTab('data')}
               className={`${
                 selectedTab === 'data'
-                  ? 'border-green-300 text-green-200 bg-white/20 backdrop-blur-sm'
+                  ? 'border-green-300 text-green-200 bg-white/20 backdrop-blur-sm animate-pulse'
                   : 'border-transparent text-white/80 hover:text-white hover:border-white/50 hover:bg-white/10'
-              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg transform transition-all duration-300 hover:scale-105 hover:-translate-y-1 shadow-lg`}
+              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
+              style={{ animationDelay: '0.2s' }}
             >
-              <BarChart3 className="h-4 w-4 transition-transform duration-300 hover:rotate-12" />
-              <span>Data & Analytics</span>
+              <BarChart3 className="h-4 w-4 transition-transform duration-300 hover:rotate-12 hover:scale-110" />
+              <span className="hover:rainbow-text transition-all duration-300">Data & Analytics</span>
             </button>
             <button
               onClick={() => setSelectedTab('activity')}
               className={`${
                 selectedTab === 'activity'
-                  ? 'border-blue-300 text-blue-200 bg-white/20 backdrop-blur-sm'
+                  ? 'border-blue-300 text-blue-200 bg-white/20 backdrop-blur-sm animate-pulse'
                   : 'border-transparent text-white/80 hover:text-white hover:border-white/50 hover:bg-white/10'
-              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg transform transition-all duration-300 hover:scale-105 hover:-translate-y-1 shadow-lg`}
+              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
+              style={{ animationDelay: '0.3s' }}
             >
-              <Activity className="h-4 w-4 transition-transform duration-300 hover:rotate-12" />
-              <span>Activity Log</span>
+              <Activity className="h-4 w-4 transition-transform duration-300 hover:rotate-12 hover:scale-110" />
+              <span className="hover:rainbow-text transition-all duration-300">Activity Log</span>
             </button>
             <button
               onClick={() => setSelectedTab('insights')}
               className={`${
                 selectedTab === 'insights'
-                  ? 'border-orange-300 text-orange-200 bg-white/20 backdrop-blur-sm'
+                  ? 'border-orange-300 text-orange-200 bg-white/20 backdrop-blur-sm animate-pulse'
                   : 'border-transparent text-white/80 hover:text-white hover:border-white/50 hover:bg-white/10'
-              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg transform transition-all duration-300 hover:scale-105 hover:-translate-y-1 shadow-lg`}
+              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
+              style={{ animationDelay: '0.4s' }}
             >
-              <TrendingUp className="h-4 w-4 transition-transform duration-300 hover:rotate-12" />
-              <span>Insights</span>
+              <TrendingUp className="h-4 w-4 transition-transform duration-300 hover:rotate-12 hover:scale-110" />
+              <span className="hover:rainbow-text transition-all duration-300">Insights</span>
             </button>
           </nav>
         </div>
@@ -469,9 +474,9 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="transform transition-all duration-500 hover:scale-[1.01]">
+        <div className="animate-fade-in">
           {selectedTab === 'control' && (
-            <div className="animate-fade-in">
+            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
               <WorkflowPanel
                 workflows={enhancedWorkflows}
                 onTriggerWorkflow={handleWorkflowTrigger}
@@ -480,7 +485,7 @@ const Index = () => {
           )}
           
           {selectedTab === 'data' && (
-            <div className="animate-fade-in">
+            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
               <DataVisualization
                 workflows={enhancedWorkflows}
                 executions={executions}
@@ -489,13 +494,13 @@ const Index = () => {
           )}
           
           {selectedTab === 'activity' && (
-            <div className="animate-fade-in">
+            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
               <ActivityLog executions={executions} />
             </div>
           )}
           
           {selectedTab === 'insights' && (
-            <div className="animate-fade-in">
+            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
               <WorkflowInsights executions={executions} />
             </div>
           )}
@@ -503,7 +508,7 @@ const Index = () => {
       </main>
 
       {/* Configuration Modal */}
-      <div className="transform transition-all duration-300">
+      <div className="animate-bounce-in">
         <ConfigurationModal
           isOpen={isConfigOpen}
           onClose={() => setIsConfigOpen(false)}
