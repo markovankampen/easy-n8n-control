@@ -2,86 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
+/* n8n-inspired color scheme */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 267 74% 62%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 267 74% 62%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-background: 240 10% 3.9%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 267 74% 62%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 267 74% 62%;
+
+    /* n8n specific colors */
+    --n8n-primary: 267 74% 62%;
+    --n8n-secondary: 315 70% 60%;
+    --n8n-dark: 240 10% 3.9%;
+    --n8n-surface: 240 5% 8%;
+    --n8n-surface-light: 240 4% 12%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 267 74% 62%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 267 74% 62%;
+    --sidebar-background: 240 10% 3.9%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 267 74% 62%;
+    --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 267 74% 62%;
   }
 }
 
@@ -92,10 +99,11 @@
 
   body {
     @apply bg-background text-foreground;
+    background: hsl(var(--n8n-dark));
   }
 }
 
-/* Custom animations and colorful effects */
+/* n8n-inspired animations and effects */
 @layer utilities {
   .animate-fade-in {
     animation: fadeIn 0.6s ease-out forwards;
@@ -114,37 +122,44 @@
   }
   
   .hover-glow:hover {
-    filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.6));
+    filter: drop-shadow(0 0 20px hsl(var(--n8n-primary) / 0.6));
     transform: translateY(-2px);
   }
   
-  .gradient-border {
-    position: relative;
-    background: linear-gradient(45deg, #8b5cf6, #ec4899, #f59e0b);
-    padding: 2px;
-    border-radius: 12px;
+  .n8n-gradient {
+    background: linear-gradient(135deg, hsl(var(--n8n-primary)), hsl(var(--n8n-secondary)));
   }
   
-  .gradient-border::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(45deg, #8b5cf6, #ec4899, #f59e0b);
-    border-radius: inherit;
-    animation: gradientRotate 3s linear infinite;
+  .n8n-gradient-text {
+    background: linear-gradient(135deg, hsl(var(--n8n-primary)), hsl(var(--n8n-secondary)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .n8n-surface {
+    background: hsl(var(--n8n-surface));
+  }
+  
+  .n8n-surface-light {
+    background: hsl(var(--n8n-surface-light));
   }
   
   .floating {
     animation: floating 3s ease-in-out infinite;
   }
   
-  .rainbow-text {
-    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3);
-    background-size: 300% 300%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: rainbow 3s ease-in-out infinite;
+  .n8n-card {
+    background: hsl(var(--n8n-surface));
+    border: 1px solid hsl(var(--n8n-surface-light));
+    transition: all 0.3s ease;
+  }
+  
+  .n8n-card:hover {
+    background: hsl(var(--n8n-surface-light));
+    border-color: hsl(var(--n8n-primary) / 0.3);
+    box-shadow: 0 8px 32px hsl(var(--n8n-primary) / 0.1);
+    transform: translateY(-2px);
   }
 
   /* Individual item hover effects */
@@ -166,24 +181,33 @@
     animation: iconWiggle 0.5s ease-in-out;
   }
 
-  /* Text shimmer effect */
-  .text-shimmer {
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
+  /* n8n button styles */
+  .n8n-button {
+    background: linear-gradient(135deg, hsl(var(--n8n-primary)), hsl(var(--n8n-secondary)));
+    border: none;
+    color: white;
+    transition: all 0.3s ease;
+  }
+  
+  .n8n-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px hsl(var(--n8n-primary) / 0.3);
+    filter: brightness(1.1);
   }
 
-  /* Pulsing glow effect */
+  /* Pulsing glow effect with n8n colors */
   .pulse-glow {
     animation: pulseGlow 2s ease-in-out infinite alternate;
   }
 
-  /* Card lift effect */
+  /* Card lift effect with n8n styling */
   .card-lift:hover {
     transform: translateY(-8px) rotateX(5deg);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    box-shadow: 0 20px 40px hsl(var(--n8n-primary) / 0.2);
   }
 }
+
+// ... keep existing code (keyframes fadeIn, bounceIn, slideUp, floating, iconBounce, iconWiggle)
 
 @keyframes fadeIn {
   from {
@@ -225,30 +249,12 @@
   }
 }
 
-@keyframes gradientRotate {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
 @keyframes floating {
   0%, 100% {
     transform: translateY(0px);
   }
   50% {
     transform: translateY(-10px);
-  }
-}
-
-@keyframes rainbow {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
   }
 }
 
@@ -270,32 +276,16 @@
   75% { transform: rotate(-5deg); }
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
 @keyframes pulseGlow {
   from {
-    filter: drop-shadow(0 0 5px rgba(139, 92, 246, 0.3));
+    filter: drop-shadow(0 0 5px hsl(var(--n8n-primary) / 0.3));
   }
   to {
-    filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.8));
+    filter: drop-shadow(0 0 20px hsl(var(--n8n-primary) / 0.8));
   }
 }
 
-@keyframes ripple {
-  0% {
-    transform: scale(0);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(4);
-    opacity: 0;
-  }
-}
-
-/* Hover effects for buttons and cards */
+/* n8n-inspired hover effects for cards and buttons */
 .card-hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -309,7 +299,7 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, hsl(var(--n8n-primary) / 0.1), transparent);
   transition: left 0.5s;
   z-index: 1;
 }
@@ -320,7 +310,7 @@
 
 .card-hover:hover {
   transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 20px 40px rgba(139, 92, 246, 0.2), 0 0 30px rgba(236, 72, 153, 0.1);
+  box-shadow: 0 20px 40px hsl(var(--n8n-primary) / 0.2), 0 0 30px hsl(var(--n8n-secondary) / 0.1);
 }
 
 .button-hover {
@@ -346,36 +336,36 @@
 
 .button-hover:hover {
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 10px 25px hsl(var(--n8n-primary) / 0.3);
 }
 
-/* Individual stat card animations */
+/* Individual stat card animations with n8n colors */
 .stat-card {
   transition: all 0.2s ease;
 }
 
 .stat-card:hover {
   transform: scale(1.1) rotateY(5deg);
-  background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(139, 92, 246, 0.1));
+  background: linear-gradient(135deg, hsl(var(--n8n-surface-light)), hsl(var(--n8n-primary) / 0.1));
 }
 
-/* Glowing text effect */
+/* n8n-style glowing text effect */
 .glow-text {
-  text-shadow: 0 0 10px rgba(139, 92, 246, 0.8),
-               0 0 20px rgba(139, 92, 246, 0.6),
-               0 0 30px rgba(139, 92, 246, 0.4);
+  text-shadow: 0 0 10px hsl(var(--n8n-primary) / 0.8),
+               0 0 20px hsl(var(--n8n-primary) / 0.6),
+               0 0 30px hsl(var(--n8n-primary) / 0.4);
   animation: glow 2s ease-in-out infinite alternate;
 }
 
 @keyframes glow {
   from {
-    text-shadow: 0 0 10px rgba(139, 92, 246, 0.8),
-                 0 0 20px rgba(139, 92, 246, 0.6),
-                 0 0 30px rgba(139, 92, 246, 0.4);
+    text-shadow: 0 0 10px hsl(var(--n8n-primary) / 0.8),
+                 0 0 20px hsl(var(--n8n-primary) / 0.6),
+                 0 0 30px hsl(var(--n8n-primary) / 0.4);
   }
   to {
-    text-shadow: 0 0 20px rgba(236, 72, 153, 0.8),
-                 0 0 30px rgba(236, 72, 153, 0.6),
-                 0 0 40px rgba(236, 72, 153, 0.4);
+    text-shadow: 0 0 20px hsl(var(--n8n-secondary) / 0.8),
+                 0 0 30px hsl(var(--n8n-secondary) / 0.6),
+                 0 0 40px hsl(var(--n8n-secondary) / 0.4);
   }
 }

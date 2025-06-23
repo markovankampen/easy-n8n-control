@@ -1,523 +1,509 @@
-
 import React, { useState, useEffect } from 'react';
-import { WorkflowPanel } from '../components/WorkflowPanel';
-import { StatusDisplay } from '../components/StatusDisplay';
-import { DataVisualization } from '../components/DataVisualization';
-import { ActivityLog } from '../components/ActivityLog';
-import { WorkflowInsights } from '../components/WorkflowInsights';
-import { ConfigurationModal } from '../components/ConfigurationModal';
-import { WebhookService } from '../services/WebhookService';
-import { DatabaseService } from '../services/DatabaseService';
-import { supabase } from '@/integrations/supabase/client';
-import { Settings, Activity, BarChart3, Zap, TrendingUp } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from "@/components/ui/switch"
+import {
+  Play,
+  Settings,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  Clock,
+  Activity,
+  BarChart3,
+  Workflow
+} from 'lucide-react';
+import { WorkflowPanel } from '@/components/WorkflowPanel';
 
-export interface Workflow {
-  id: string;
-  name: string;
-  description: string;
-  webhookUrl: string;
-  status: 'idle' | 'running' | 'success' | 'failed';
-  lastRun?: Date;
-  executionCount: number;
-  successRate: number;
-  avgExecutionTime: number;
-  requiresInput: boolean;
-  inputSchema?: any;
-}
+// Mock Data
+const initialWorkflows: Workflow[] = [
+  {
+    id: '1',
+    name: 'Send Welcome Email',
+    description: 'Sends a welcome email to new users',
+    status: 'success',
+    webhookUrl: 'https://example.com/webhook1',
+    executionCount: 50,
+    successRate: 95,
+    avgExecutionTime: 250,
+    lastRun: new Date(),
+    requiresInput: false,
+    inputSchema: null,
+  },
+  {
+    id: '2',
+    name: 'Create Invoice',
+    description: 'Creates an invoice for a new order',
+    status: 'running',
+    webhookUrl: 'https://example.com/webhook2',
+    executionCount: 30,
+    successRate: 80,
+    avgExecutionTime: 500,
+    lastRun: new Date(),
+    requiresInput: true,
+    inputSchema: {
+      amount: { type: 'text', label: 'Amount', required: true, placeholder: 'Enter amount' },
+      description: { type: 'textarea', label: 'Description', required: false, placeholder: 'Enter description' },
+    },
+  },
+  {
+    id: '3',
+    name: 'Sync Data to CRM',
+    description: 'Syncs new user data to CRM',
+    status: 'failed',
+    webhookUrl: 'https://example.com/webhook3',
+    executionCount: 75,
+    successRate: 60,
+    avgExecutionTime: 750,
+    lastRun: new Date(),
+    requiresInput: false,
+    inputSchema: null,
+  },
+  {
+    id: '4',
+    name: 'Backup Database',
+    description: 'Backs up the database to a remote server',
+    status: 'idle',
+    webhookUrl: 'https://example.com/webhook4',
+    executionCount: 120,
+    successRate: 99,
+    avgExecutionTime: 1200,
+    lastRun: new Date(),
+    requiresInput: false,
+    inputSchema: null,
+  },
+];
 
-export interface WorkflowExecution {
-  id: string;
-  workflowId: string;
-  workflowName: string;
-  status: 'running' | 'success' | 'failed';
-  startTime: Date;
-  endTime?: Date;
-  duration?: number;
-  result?: any;
-  error?: string;
-}
+const mockActivityLog = [
+  { id: 1, workflow: 'Send Welcome Email', status: 'success', time: new Date() },
+  { id: 2, workflow: 'Create Invoice', status: 'running', time: new Date() },
+  { id: 3, workflow: 'Sync Data to CRM', status: 'failed', time: new Date() },
+];
 
-const Index = () => {
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [executions, setExecutions] = useState<WorkflowExecution[]>([]);
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [selectedTab, setSelectedTab] = useState<'control' | 'data' | 'activity' | 'insights'>('control');
-  const [loading, setLoading] = useState(true);
-  const [runningWorkflows, setRunningWorkflows] = useState<Set<string>>(new Set());
-  const [workflowOrder, setWorkflowOrder] = useState<string[]>([]);
-  const { toast } = useToast();
+const MockDataVisualization = () => (
+  <Card className="n8n-card">
+    <CardHeader>
+      <CardTitle className="n8n-gradient-text">Data Visualization</CardTitle>
+      <CardDescription className="text-gray-400">
+        Insights into workflow performance
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div className="text-center">
+        <p className="text-gray-300">
+          Mock data visualization component
+        </p>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const MockWorkflowInsights = ({ workflows }: { workflows: Workflow[] }) => (
+  <Card className="n8n-card">
+    <CardHeader>
+      <CardTitle className="n8n-gradient-text">Workflow Insights</CardTitle>
+      <CardDescription className="text-gray-400">
+        Key metrics and insights for your workflows
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-4">
+        <div className="flex justify-between">
+          <span className="text-gray-300">Total Workflows:</span>
+          <span className="text-white">{workflows.length}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-300">Successful Runs:</span>
+          <span className="text-green-400">
+            {workflows.filter((w) => w.status === 'success').length}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-300">Average Execution Time:</span>
+          <span className="text-blue-400">
+            {workflows.reduce((acc, w) => acc + w.avgExecutionTime, 0) /
+              workflows.length}
+            ms
+          </span>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const MockStatusDisplay = ({
+  isConnected,
+  lastUpdate,
+  error,
+}: {
+  isConnected: boolean;
+  lastUpdate: Date | null;
+  error: string | null;
+}) => (
+  <Card className="n8n-card">
+    <CardHeader>
+      <CardTitle className="n8n-gradient-text">System Status</CardTitle>
+      <CardDescription className="text-gray-400">
+        Real-time status of your workflow engine
+      </CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-gray-300">Connection Status:</span>
+        {isConnected ? (
+          <CheckCircle className="h-5 w-5 text-green-400" />
+        ) : (
+          <AlertCircle className="h-5 w-5 text-red-400" />
+        )}
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-gray-300">Last Update:</span>
+        <span className="text-white">
+          {lastUpdate ? lastUpdate.toLocaleString() : 'N/A'}
+        </span>
+      </div>
+      {error && (
+        <div className="text-red-400">
+          Error: {error}
+        </div>
+      )}
+    </CardContent>
+  </Card>
+);
+
+const MockActivityLog = () => (
+  <Card className="n8n-card">
+    <CardHeader>
+      <CardTitle className="n8n-gradient-text">Activity Log</CardTitle>
+      <CardDescription className="text-gray-400">
+        Recent workflow activity
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <ul className="space-y-2">
+        {mockActivityLog.map((log) => (
+          <li key={log.id} className="flex items-center justify-between text-sm text-gray-300">
+            <span>{log.workflow}</span>
+            <div className="flex items-center">
+              <span className={`mr-2 ${log.status === 'success' ? 'text-green-400' : log.status === 'failed' ? 'text-red-400' : 'text-blue-400'}`}>
+                {log.status}
+              </span>
+              <span>{log.time.toLocaleTimeString()}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </CardContent>
+  </Card>
+);
+
+const MockConfigurationModal = ({
+  isOpen,
+  onClose,
+  workflows,
+  onWorkflowsChange,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  workflows: Workflow[];
+  onWorkflowsChange: (newWorkflows: Workflow[]) => void;
+}) => {
+  const [localWorkflows, setLocalWorkflows] = useState([...workflows]);
 
   useEffect(() => {
-    loadDashboardData();
-    setupRealtimeSubscriptions();
-    
-    // Cleanup function
-    return () => {
-      supabase.removeAllChannels();
-    };
-  }, []);
+    setLocalWorkflows([...workflows]);
+  }, [workflows]);
 
-  const setupRealtimeSubscriptions = () => {
-    console.log('Setting up real-time subscriptions...');
-    
-    // Subscribe to workflows changes
-    const workflowsChannel = supabase
-      .channel('workflows-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'workflows'
-        },
-        (payload) => {
-          console.log('Workflows real-time update:', payload);
-          handleWorkflowRealtimeUpdate(payload);
-        }
-      )
-      .subscribe();
-
-    // Subscribe to executions changes
-    const executionsChannel = supabase
-      .channel('executions-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'workflow_executions'
-        },
-        (payload) => {
-          console.log('Executions real-time update:', payload);
-          handleExecutionRealtimeUpdate(payload);
-        }
-      )
-      .subscribe();
-  };
-
-  const handleWorkflowRealtimeUpdate = (payload: any) => {
-    const { eventType, new: newRecord, old: oldRecord } = payload;
-    
-    switch (eventType) {
-      case 'INSERT':
-        const newWorkflow = DatabaseService.mapDatabaseToWorkflow(newRecord);
-        setWorkflows(prev => [...prev, newWorkflow]);
-        setWorkflowOrder(prev => [...prev, newWorkflow.id]);
-        break;
-        
-      case 'UPDATE':
-        const updatedWorkflow = DatabaseService.mapDatabaseToWorkflow(newRecord);
-        setWorkflows(prev => prev.map(w => w.id === updatedWorkflow.id ? updatedWorkflow : w));
-        break;
-        
-      case 'DELETE':
-        const deletedId = oldRecord.id;
-        setWorkflows(prev => prev.filter(w => w.id !== deletedId));
-        setWorkflowOrder(prev => prev.filter(id => id !== deletedId));
-        // Also remove related executions from local state
-        setExecutions(prev => prev.filter(e => e.workflowId !== deletedId));
-        toast({
-          title: "Workflow Deleted",
-          description: `Workflow and all related data have been removed.`,
-          variant: "default"
-        });
-        break;
-    }
-  };
-
-  const handleExecutionRealtimeUpdate = (payload: any) => {
-    const { eventType, new: newRecord, old: oldRecord } = payload;
-    
-    switch (eventType) {
-      case 'INSERT':
-        const newExecution = DatabaseService.mapDatabaseToExecution(newRecord);
-        setExecutions(prev => [newExecution, ...prev]);
-        break;
-        
-      case 'UPDATE':
-        const updatedExecution = DatabaseService.mapDatabaseToExecution(newRecord);
-        setExecutions(prev => prev.map(e => e.id === updatedExecution.id ? updatedExecution : e));
-        break;
-        
-      case 'DELETE':
-        const deletedExecutionId = oldRecord.id;
-        setExecutions(prev => prev.filter(e => e.id !== deletedExecutionId));
-        break;
-    }
-  };
-
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      console.log('Loading dashboard data...');
-      const [workflowsData, executionsData] = await Promise.all([
-        DatabaseService.getWorkflows(),
-        DatabaseService.getExecutions()
-      ]);
-      
-      console.log('Loaded workflows:', workflowsData.length);
-      console.log('Loaded executions:', executionsData.length);
-      
-      // Update workflow order, removing deleted workflows and adding new ones
-      const currentWorkflowIds = workflowsData.map(w => w.id);
-      const filteredOrder = workflowOrder.filter(id => currentWorkflowIds.includes(id));
-      const newWorkflowIds = currentWorkflowIds.filter(id => !workflowOrder.includes(id));
-      setWorkflowOrder([...filteredOrder, ...newWorkflowIds]);
-      
-      setWorkflows(workflowsData);
-      setExecutions(executionsData);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      toast({
-        title: "Error Loading Data",
-        description: "Failed to load workflow data from database.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleWorkflowTrigger = async (workflowId: string, params?: any) => {
-    const workflow = workflows.find(w => w.id === workflowId);
-    if (!workflow) {
-      console.error('Workflow not found:', workflowId);
-      return;
-    }
-
-    if (!workflow.webhookUrl) {
-      toast({
-        title: "Configuration Required",
-        description: "Please configure the webhook URL for this workflow.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    console.log('Starting workflow execution:', { workflowId, workflowName: workflow.name });
-
-    // Set workflow as running in local state only
-    setRunningWorkflows(prev => new Set(prev).add(workflowId));
-
-    // Create execution record with unique ID
-    const executionId = `exec-${workflowId}-${Date.now()}`;
-    const execution: WorkflowExecution = {
-      id: executionId,
-      workflowId: workflowId,
-      workflowName: workflow.name,
-      status: 'running',
-      startTime: new Date()
-    };
-
-    try {
-      // Add execution to local list
-      setExecutions(prev => [execution, ...prev]);
-      
-      // Save execution to database
-      await DatabaseService.createExecution(execution);
-
-      toast({
-        title: "Workflow Started",
-        description: `${workflow.name} is now running...`
-      });
-
-      console.log('Executing workflow:', { workflowId, executionId, webhookUrl: workflow.webhookUrl });
-
-      // Execute workflow
-      const result = await WebhookService.triggerWorkflow(workflow.webhookUrl, params);
-      
-      // Update execution with success
-      const completedExecution = {
-        ...execution,
-        status: 'success' as const,
-        endTime: new Date(),
-        duration: Date.now() - execution.startTime.getTime(),
-        result
-      };
-      
-      console.log('Workflow completed successfully:', { workflowId, executionId });
-      await handleWorkflowComplete(workflowId, completedExecution);
-      
-    } catch (error) {
-      console.error('Workflow failed:', { workflowId, executionId, error });
-      // Update execution with failure
-      const failedExecution = {
-        ...execution,
-        status: 'failed' as const,
-        endTime: new Date(),
-        duration: Date.now() - execution.startTime.getTime(),
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-      
-      await handleWorkflowComplete(workflowId, failedExecution);
-    }
-  };
-
-  const handleWorkflowComplete = async (workflowId: string, execution: WorkflowExecution) => {
-    try {
-      console.log('Updating execution in database:', { executionId: execution.id, workflowId, status: execution.status });
-      
-      // Update execution in database
-      await DatabaseService.updateExecution(execution);
-      
-      // Update local executions list
-      setExecutions(prev => 
-        prev.map(exec => exec.id === execution.id ? execution : exec)
-      );
-      
-      // Only reload workflows if the workflow still exists in the current state
-      if (workflows.find(w => w.id === workflowId)) {
-        console.log('Reloading workflow statistics after execution');
-        const [workflowsData] = await Promise.all([
-          DatabaseService.getWorkflows()
-        ]);
-        
-        setWorkflows(workflowsData);
-      }
-
-      toast({
-        title: execution.status === 'success' ? "Workflow Completed" : "Workflow Failed",
-        description: execution.status === 'success' ? 
-          `${execution.workflowName} completed successfully` : 
-          `${execution.workflowName} failed: ${execution.error}`,
-        variant: execution.status === 'success' ? "default" : "destructive"
-      });
-
-      // Remove from running set after a brief delay
-      setTimeout(() => {
-        setRunningWorkflows(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(workflowId);
-          return newSet;
-        });
-      }, 1000);
-    } catch (error) {
-      console.error('Error completing workflow:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update workflow execution status.",
-        variant: "destructive"
-      });
-      
-      // Remove from running set even on error
-      setRunningWorkflows(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(workflowId);
-        return newSet;
-      });
-    }
-  };
-
-  const handleWorkflowUpdate = async (updatedWorkflows: Workflow[]) => {
-    try {
-      console.log('Handling workflow update with', updatedWorkflows.length, 'workflows');
-      
-      // Update local state immediately
-      setWorkflows(updatedWorkflows);
-      
-      // Update workflow order to reflect current workflows
-      const currentWorkflowIds = updatedWorkflows.map(w => w.id);
-      const filteredOrder = workflowOrder.filter(id => currentWorkflowIds.includes(id));
-      const newWorkflowIds = currentWorkflowIds.filter(id => !workflowOrder.includes(id));
-      setWorkflowOrder([...filteredOrder, ...newWorkflowIds]);
-      
-      // Also reload executions to ensure consistency
-      const executionsData = await DatabaseService.getExecutions();
-      setExecutions(executionsData);
-      
-      toast({
-        title: "Configuration Updated",
-        description: "Workflow configurations have been saved.",
-      });
-    } catch (error) {
-      console.error('Error updating workflows:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save workflow configurations.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Create enhanced workflows with running status and maintain stable order
-  const getSortedWorkflows = () => {
-    if (workflowOrder.length === 0) return workflows;
-    
-    // Sort workflows according to the established order
-    const sortedWorkflows = [...workflows].sort((a, b) => {
-      const indexA = workflowOrder.indexOf(a.id);
-      const indexB = workflowOrder.indexOf(b.id);
-      
-      // If both workflows are in the order array, sort by their position
-      if (indexA !== -1 && indexB !== -1) {
-        return indexA - indexB;
-      }
-      
-      // If only one is in the order array, prioritize it
-      if (indexA !== -1) return -1;
-      if (indexB !== -1) return 1;
-      
-      // If neither is in the order array, maintain original order
-      return 0;
-    });
-    
-    return sortedWorkflows;
-  };
-
-  const enhancedWorkflows = getSortedWorkflows().map(workflow => ({
-    ...workflow,
-    status: runningWorkflows.has(workflow.id) ? 'running' as const : 'idle' as const
-  }));
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-400 to-orange-400 flex items-center justify-center">
-        <div className="text-center animate-bounce-in">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mx-auto mb-4 shadow-lg hover-glow"></div>
-          <p className="text-white font-semibold text-lg drop-shadow-lg glow-text">Loading dashboard...</p>
-        </div>
-      </div>
+  const handleInputChange = (id: string, key: string, value: any) => {
+    const updatedWorkflows = localWorkflows.map((workflow) =>
+      workflow.id === id ? { ...workflow, [key]: value } : workflow
     );
-  }
+    setLocalWorkflows(updatedWorkflows);
+  };
+
+  const handleToggle = (id: string) => {
+    const updatedWorkflows = localWorkflows.map(workflow =>
+      workflow.id === id ? { ...workflow, enabled: !workflow.enabled } : workflow
+    );
+    setLocalWorkflows(updatedWorkflows);
+  };
+
+  const handleSave = () => {
+    onWorkflowsChange(localWorkflows);
+    onClose();
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-400 to-orange-400">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 shadow-xl border-b border-purple-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4 group">
-              <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-3 rounded-xl shadow-lg card-hover floating">
-                <Zap className="h-6 w-6 text-white animate-pulse hover:animate-bounce" />
-              </div>
-              <div className="hover:scale-105 transition-all duration-300">
-                <h1 className="text-xl font-bold text-white drop-shadow-lg hover:glow-text transition-all duration-300">N8N Workflow Dashboard</h1>
-                <p className="text-sm text-blue-100 drop-shadow hover:text-yellow-200 transition-colors duration-300">Control and monitor your automation workflows</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <div className="hover-scale animate-fade-in">
-                <StatusDisplay workflows={enhancedWorkflows} />
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsConfigOpen(true)}
-                className="flex items-center space-x-2 bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30 button-hover shadow-lg"
-              >
-                <Settings className="h-4 w-4 transition-transform duration-300 hover:rotate-45" />
-                <span>Configure</span>
-              </Button>
-            </div>
-          </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="n8n-surface">
+        <DialogHeader>
+          <DialogTitle className="n8n-gradient-text">Workflow Configuration</DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Manage your workflow settings
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          {localWorkflows.map((workflow) => (
+            <Card key={workflow.id} className="n8n-card">
+              <CardHeader>
+                <CardTitle className="text-white">{workflow.name}</CardTitle>
+                <CardDescription className="text-gray-400">{workflow.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor={`webhook-${workflow.id}`} className="text-gray-300">Webhook URL</Label>
+                  <Input
+                    id={`webhook-${workflow.id}`}
+                    value={workflow.webhookUrl || ''}
+                    onChange={(e) => handleInputChange(workflow.id, 'webhookUrl', e.target.value)}
+                    className="n8n-surface-light text-white"
+                  />
+                </div>
+                {/*<div className="flex items-center justify-between">
+                  <Label htmlFor={`enabled-${workflow.id}`} className="text-gray-300">Enabled</Label>
+                  <Switch
+                    id={`enabled-${workflow.id}`}
+                    checked={workflow.enabled}
+                    onCheckedChange={() => handleToggle(workflow.id)}
+                  />
+                </div>*/}
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </header>
-
-      {/* Navigation Tabs */}
-      <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 border-b border-purple-300 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8" aria-label="Tabs">
-            <button
-              onClick={() => setSelectedTab('control')}
-              className={`${
-                selectedTab === 'control'
-                  ? 'border-yellow-300 text-yellow-200 bg-white/20 backdrop-blur-sm animate-pulse'
-                  : 'border-transparent text-white/80 hover:text-white hover:border-white/50 hover:bg-white/10'
-              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
-              style={{ animationDelay: '0.1s' }}
-            >
-              <Zap className="h-4 w-4 transition-transform duration-300 hover:rotate-12 hover:scale-110" />
-              <span className="hover:rainbow-text transition-all duration-300">Workflow Control</span>
-            </button>
-            <button
-              onClick={() => setSelectedTab('data')}
-              className={`${
-                selectedTab === 'data'
-                  ? 'border-green-300 text-green-200 bg-white/20 backdrop-blur-sm animate-pulse'
-                  : 'border-transparent text-white/80 hover:text-white hover:border-white/50 hover:bg-white/10'
-              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
-              style={{ animationDelay: '0.2s' }}
-            >
-              <BarChart3 className="h-4 w-4 transition-transform duration-300 hover:rotate-12 hover:scale-110" />
-              <span className="hover:rainbow-text transition-all duration-300">Data & Analytics</span>
-            </button>
-            <button
-              onClick={() => setSelectedTab('activity')}
-              className={`${
-                selectedTab === 'activity'
-                  ? 'border-blue-300 text-blue-200 bg-white/20 backdrop-blur-sm animate-pulse'
-                  : 'border-transparent text-white/80 hover:text-white hover:border-white/50 hover:bg-white/10'
-              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
-              style={{ animationDelay: '0.3s' }}
-            >
-              <Activity className="h-4 w-4 transition-transform duration-300 hover:rotate-12 hover:scale-110" />
-              <span className="hover:rainbow-text transition-all duration-300">Activity Log</span>
-            </button>
-            <button
-              onClick={() => setSelectedTab('insights')}
-              className={`${
-                selectedTab === 'insights'
-                  ? 'border-orange-300 text-orange-200 bg-white/20 backdrop-blur-sm animate-pulse'
-                  : 'border-transparent text-white/80 hover:text-white hover:border-white/50 hover:bg-white/10'
-              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
-              style={{ animationDelay: '0.4s' }}
-            >
-              <TrendingUp className="h-4 w-4 transition-transform duration-300 hover:rotate-12 hover:scale-110" />
-              <span className="hover:rainbow-text transition-all duration-300">Insights</span>
-            </button>
-          </nav>
+        <div className="flex justify-end space-x-2 mt-4">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} className="n8n-button">
+            Save
+          </Button>
         </div>
-      </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="animate-fade-in">
-          {selectedTab === 'control' && (
-            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              <WorkflowPanel
-                workflows={enhancedWorkflows}
-                onTriggerWorkflow={handleWorkflowTrigger}
-              />
-            </div>
-          )}
-          
-          {selectedTab === 'data' && (
-            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              <DataVisualization
-                workflows={enhancedWorkflows}
-                executions={executions}
-              />
-            </div>
-          )}
-          
-          {selectedTab === 'activity' && (
-            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              <ActivityLog executions={executions} />
-            </div>
-          )}
-          
-          {selectedTab === 'insights' && (
-            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              <WorkflowInsights executions={executions} />
-            </div>
-          )}
+export default function Index() {
+  const [workflows, setWorkflows] = useState<Workflow[]>(initialWorkflows);
+  const [isConnected, setIsConnected] = useState<boolean>(true);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(new Date());
+  const [error, setError] = useState<string | null>(null);
+  const [configModalOpen, setConfigModalOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Mock status updates
+    const intervalId = setInterval(() => {
+      setIsConnected((prev) => !prev);
+      setLastUpdate(new Date());
+      setError(isConnected ? null : 'Connection lost');
+    }, 10000);
+
+    return () => clearInterval(intervalId);
+  }, [isConnected]);
+
+  const handleTriggerWorkflow = (workflowId: string, params?: any) => {
+    setWorkflows((prevWorkflows) =>
+      prevWorkflows.map((workflow) =>
+        workflow.id === workflowId ? { ...workflow, status: 'running' } : workflow
+      )
+    );
+
+    // Mock workflow execution
+    setTimeout(() => {
+      const success = Math.random() > 0.3;
+      setWorkflows((prevWorkflows) =>
+        prevWorkflows.map((workflow) =>
+          workflow.id === workflowId
+            ? {
+                ...workflow,
+                status: success ? 'success' : 'failed',
+                lastRun: new Date(),
+                executionCount: workflow.executionCount + 1,
+                successRate: success
+                  ? Math.min(100, workflow.successRate + 5)
+                  : Math.max(0, workflow.successRate - 5),
+                avgExecutionTime: Math.floor(Math.random() * 1000),
+              }
+            : workflow
+        )
+      );
+    }, 3000);
+  };
+
+  const handleWorkflowsChange = (newWorkflows: Workflow[]) => {
+    setWorkflows(newWorkflows);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-12 animate-fade-in">
+          <h1 className="text-5xl font-bold n8n-gradient-text mb-4 hover:glow-text transition-all duration-300">
+            Workflow Dashboard
+          </h1>
+          <p className="text-xl text-gray-300 hover:text-purple-300 transition-colors duration-300">
+            Automate your processes with powerful workflows
+          </p>
         </div>
-      </main>
 
-      {/* Configuration Modal */}
-      <div className="animate-bounce-in">
-        <ConfigurationModal
-          isOpen={isConfigOpen}
-          onClose={() => setIsConfigOpen(false)}
+        {/* Tabs */}
+        <Tabs defaultValue="workflows" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-8 n8n-surface border border-gray-700">
+            <TabsTrigger 
+              value="workflows" 
+              className="data-[state=active]:n8n-gradient data-[state=active]:text-white hover:bg-gray-700 transition-all duration-300 hover:scale-105"
+            >
+              <Play className="h-4 w-4 mr-2 icon-bounce" />
+              Workflows
+            </TabsTrigger>
+            <TabsTrigger 
+              value="status" 
+              className="data-[state=active]:n8n-gradient data-[state=active]:text-white hover:bg-gray-700 transition-all duration-300 hover:scale-105"
+            >
+              <Activity className="h-4 w-4 mr-2 icon-wiggle" />
+              Status
+            </TabsTrigger>
+            <TabsTrigger 
+              value="insights" 
+              className="data-[state=active]:n8n-gradient data-[state=active]:text-white hover:bg-gray-700 transition-all duration-300 hover:scale-105"
+            >
+              <BarChart3 className="h-4 w-4 mr-2 icon-bounce" />
+              Insights
+            </TabsTrigger>
+            <TabsTrigger 
+              value="config" 
+              className="data-[state=active]:n8n-gradient data-[state=active]:text-white hover:bg-gray-700 transition-all duration-300 hover:scale-105"
+            >
+              <Settings className="h-4 w-4 mr-2 icon-wiggle" />
+              Configuration
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Workflows Tab */}
+          <TabsContent value="workflows" className="animate-slide-up">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Quick Stats */}
+              <div className="lg:col-span-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                  <Card className="n8n-card hover:scale-105 transition-all duration-300 item-hover">
+                    <CardContent className="p-6 text-center">
+                      <div className="flex items-center justify-center mb-2">
+                        <Workflow className="h-8 w-8 text-purple-400 icon-bounce" />
+                      </div>
+                      <div className="text-2xl font-bold text-white">{workflows.length}</div>
+                      <div className="text-sm text-gray-400">Total Workflows</div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="n8n-card hover:scale-105 transition-all duration-300 item-hover">
+                    <CardContent className="p-6 text-center">
+                      <div className="flex items-center justify-center mb-2">
+                        <CheckCircle className="h-8 w-8 text-green-400 icon-wiggle" />
+                      </div>
+                      <div className="text-2xl font-bold text-white">
+                        {workflows.filter(w => w.status === 'success').length}
+                      </div>
+                      <div className="text-sm text-gray-400">Successful</div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="n8n-card hover:scale-105 transition-all duration-300 item-hover">
+                    <CardContent className="p-6 text-center">
+                      <div className="flex items-center justify-center mb-2">
+                        <Loader2 className="h-8 w-8 text-blue-400 icon-bounce" />
+                      </div>
+                      <div className="text-2xl font-bold text-white">
+                        {workflows.filter(w => w.status === 'running').length}
+                      </div>
+                      <div className="text-sm text-gray-400">Running</div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="n8n-card hover:scale-105 transition-all duration-300 item-hover">
+                    <CardContent className="p-6 text-center">
+                      <div className="flex items-center justify-center mb-2">
+                        <AlertCircle className="h-8 w-8 text-red-400 icon-wiggle" />
+                      </div>
+                      <div className="text-2xl font-bold text-white">
+                        {workflows.filter(w => w.status === 'failed').length}
+                      </div>
+                      <div className="text-sm text-gray-400">Failed</div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Workflow Panel */}
+              <div className="lg:col-span-3">
+                <WorkflowPanel 
+                  workflows={workflows}
+                  onTriggerWorkflow={handleTriggerWorkflow}
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Status Tab */}
+          <TabsContent value="status" className="animate-slide-up">
+            <MockStatusDisplay 
+              isConnected={isConnected}
+              lastUpdate={lastUpdate}
+              error={error}
+            />
+          </TabsContent>
+
+          {/* Insights Tab */}
+          <TabsContent value="insights" className="animate-slide-up">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <MockWorkflowInsights workflows={workflows} />
+              <MockDataVisualization workflows={workflows} />
+            </div>
+          </TabsContent>
+
+          {/* Configuration Tab */}
+          <TabsContent value="config" className="animate-slide-up">
+            <Card className="n8n-card">
+              <CardHeader>
+                <CardTitle className="n8n-gradient-text">Workflow Configuration</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Manage your workflow settings and webhook configurations
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-center">
+                  <Button 
+                    onClick={() => setConfigModalOpen(true)}
+                    className="n8n-button hover:scale-105 transition-all duration-300"
+                  >
+                    <Settings className="h-4 w-4 mr-2 icon-wiggle" />
+                    Open Configuration
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Activity Log */}
+        <div className="mt-12 animate-fade-in" style={{ animationDelay: '0.6s' }}>
+          <MockActivityLog />
+        </div>
+
+        {/* Configuration Modal */}
+        <MockConfigurationModal 
+          isOpen={configModalOpen}
+          onClose={() => setConfigModalOpen(false)}
           workflows={workflows}
-          onUpdateWorkflows={handleWorkflowUpdate}
+          onWorkflowsChange={handleWorkflowsChange}
         />
       </div>
     </div>
   );
-};
-
-export default Index;
+}

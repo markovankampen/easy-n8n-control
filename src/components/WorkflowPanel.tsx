@@ -36,13 +36,13 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
   const getStatusColor = (status: Workflow['status']) => {
     switch (status) {
       case 'running':
-        return 'border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200';
+        return 'border-blue-500/30 n8n-surface-light hover:border-blue-400 hover:shadow-blue-500/20';
       case 'success':
-        return 'border-green-200 bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200';
+        return 'border-green-500/30 n8n-surface-light hover:border-green-400 hover:shadow-green-500/20';
       case 'failed':
-        return 'border-red-200 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200';
+        return 'border-red-500/30 n8n-surface-light hover:border-red-400 hover:shadow-red-500/20';
       default:
-        return 'border-gray-200 bg-gradient-to-br from-white to-gray-50 hover:from-gray-50 hover:to-gray-100';
+        return 'border-gray-600 n8n-surface hover:border-purple-500/50 hover:shadow-purple-500/20';
     }
   };
 
@@ -99,10 +99,10 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
   return (
     <div className="space-y-6">
       <div className="animate-fade-in">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2 hover:glow-text transition-all duration-300">
+        <h2 className="text-2xl font-bold n8n-gradient-text mb-2 hover:glow-text transition-all duration-300">
           Workflow Controls
         </h2>
-        <p className="text-gray-600 hover:text-purple-600 transition-colors duration-300">
+        <p className="text-gray-300 hover:text-purple-300 transition-colors duration-300">
           Trigger and manage your automation workflows
         </p>
       </div>
@@ -111,16 +111,16 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
         {workflows.map((workflow, index) => (
           <Card 
             key={workflow.id} 
-            className={`card-hover animate-fade-in ${getStatusColor(workflow.status)} border-2 hover:shadow-2xl hover:border-purple-300 transition-all duration-500 group`}
+            className={`card-hover animate-fade-in ${getStatusColor(workflow.status)} border-2 hover:shadow-2xl transition-all duration-500 group`}
             style={{ animationDelay: `${index * 0.1}s` }}
           >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="space-y-1 flex-1">
-                  <CardTitle className="text-lg group-hover:rainbow-text transition-all duration-300 hover:scale-105">
+                  <CardTitle className="text-lg text-white group-hover:n8n-gradient-text transition-all duration-300 hover:scale-105">
                     {workflow.name}
                   </CardTitle>
-                  <CardDescription className="text-sm group-hover:text-purple-600 transition-colors duration-300">
+                  <CardDescription className="text-sm text-gray-400 group-hover:text-purple-300 transition-colors duration-300">
                     {workflow.description}
                   </CardDescription>
                 </div>
@@ -133,27 +133,27 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
             <CardContent className="space-y-4">
               {/* Workflow Stats */}
               <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="text-center p-2 bg-white/70 rounded-lg hover:bg-white hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer group/stat">
-                  <div className="font-semibold text-gray-900 group-hover/stat:text-purple-600 transition-colors duration-300">
+                <div className="text-center p-2 n8n-surface-light rounded-lg hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer group/stat border border-gray-700">
+                  <div className="font-semibold text-white group-hover/stat:text-purple-400 transition-colors duration-300">
                     {workflow.executionCount}
                   </div>
-                  <div className="text-gray-500 group-hover/stat:text-purple-500 transition-colors duration-300">
+                  <div className="text-gray-400 group-hover/stat:text-purple-300 transition-colors duration-300">
                     Runs
                   </div>
                 </div>
-                <div className="text-center p-2 bg-white/70 rounded-lg hover:bg-white hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer group/stat">
-                  <div className="font-semibold text-gray-900 group-hover/stat:text-green-600 transition-colors duration-300">
+                <div className="text-center p-2 n8n-surface-light rounded-lg hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer group/stat border border-gray-700">
+                  <div className="font-semibold text-white group-hover/stat:text-green-400 transition-colors duration-300">
                     {workflow.successRate}%
                   </div>
-                  <div className="text-gray-500 group-hover/stat:text-green-500 transition-colors duration-300">
+                  <div className="text-gray-400 group-hover/stat:text-green-300 transition-colors duration-300">
                     Success
                   </div>
                 </div>
-                <div className="text-center p-2 bg-white/70 rounded-lg hover:bg-white hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer group/stat">
-                  <div className="font-semibold text-gray-900 group-hover/stat:text-blue-600 transition-colors duration-300">
+                <div className="text-center p-2 n8n-surface-light rounded-lg hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer group/stat border border-gray-700">
+                  <div className="font-semibold text-white group-hover/stat:text-blue-400 transition-colors duration-300">
                     {workflow.avgExecutionTime}ms
                   </div>
-                  <div className="text-gray-500 group-hover/stat:text-blue-500 transition-colors duration-300">
+                  <div className="text-gray-400 group-hover/stat:text-blue-300 transition-colors duration-300">
                     Avg Time
                   </div>
                 </div>
@@ -161,7 +161,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
 
               {/* Last Run */}
               {workflow.lastRun && (
-                <div className="text-xs text-gray-500 text-center hover:text-purple-600 transition-colors duration-300 animate-slide-up" style={{ animationDelay: `${index * 0.1 + 0.3}s` }}>
+                <div className="text-xs text-gray-400 text-center hover:text-purple-300 transition-colors duration-300 animate-slide-up" style={{ animationDelay: `${index * 0.1 + 0.3}s` }}>
                   Last run: {workflow.lastRun.toLocaleString()}
                 </div>
               )}
@@ -172,7 +172,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                   <Dialog open={inputDialogOpen === workflow.id} onOpenChange={(open) => !open && setInputDialogOpen(null)}>
                     <DialogTrigger asChild>
                       <Button
-                        className="flex-1 button-hover bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-none shadow-lg hover:shadow-xl"
+                        className="flex-1 n8n-button bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-none shadow-lg hover:shadow-xl"
                         disabled={workflow.status === 'running' || !workflow.webhookUrl}
                         onClick={() => handleTriggerWorkflow(workflow)}
                       >
@@ -203,7 +203,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                   </Dialog>
                 ) : (
                   <Button
-                    className="flex-1 button-hover bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-none shadow-lg hover:shadow-xl"
+                    className="flex-1 n8n-button text-white border-none shadow-lg hover:shadow-xl"
                     disabled={workflow.status === 'running' || !workflow.webhookUrl}
                     onClick={() => handleTriggerWorkflow(workflow)}
                   >
@@ -214,9 +214,9 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
               </div>
 
               {!workflow.webhookUrl && (
-                <div className="text-xs text-amber-600 bg-gradient-to-r from-amber-50 to-yellow-50 p-2 rounded flex items-center hover:bg-gradient-to-r hover:from-amber-100 hover:to-yellow-100 transition-all duration-300 animate-slide-up" style={{ animationDelay: `${index * 0.1 + 0.5}s` }}>
+                <div className="text-xs text-amber-300 n8n-surface-light p-2 rounded flex items-center hover:bg-amber-900/20 transition-all duration-300 animate-slide-up border border-amber-500/30" style={{ animationDelay: `${index * 0.1 + 0.5}s` }}>
                   <Settings className="h-3 w-3 mr-1 hover:rotate-45 transition-transform duration-300" />
-                  <span className="hover:text-amber-700 transition-colors duration-300">
+                  <span className="hover:text-amber-200 transition-colors duration-300">
                     Webhook URL not configured
                   </span>
                 </div>
@@ -228,14 +228,14 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
 
       {workflows.length === 0 && (
         <div className="text-center py-12 animate-bounce-in">
-          <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4 hover:text-purple-500 hover:rotate-45 hover:scale-110 transition-all duration-300" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2 hover:rainbow-text transition-all duration-300">
+          <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4 hover:text-purple-400 hover:rotate-45 hover:scale-110 transition-all duration-300" />
+          <h3 className="text-lg font-medium text-white mb-2 hover:n8n-gradient-text transition-all duration-300">
             No Workflows Configured
           </h3>
-          <p className="text-gray-500 mb-4 hover:text-purple-600 transition-colors duration-300">
+          <p className="text-gray-400 mb-4 hover:text-purple-300 transition-colors duration-300">
             Get started by configuring your first workflow
           </p>
-          <Button className="button-hover bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-none">
+          <Button className="n8n-button text-white border-none">
             Configure Workflows
           </Button>
         </div>
