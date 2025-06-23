@@ -17,11 +17,13 @@ export interface Workflow {
 export interface WorkflowExecution {
   id: string;
   workflowId: string;
+  workflowName: string;
   status: 'running' | 'success' | 'failed';
   startTime: Date;
   endTime?: Date;
   duration?: number;
   input?: any;
   output?: any;
+  result?: any;
   error?: string;
 }
