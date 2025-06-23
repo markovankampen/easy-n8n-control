@@ -27,12 +27,30 @@ serve(async (req) => {
 
     console.log('Proxying webhook request:', { webhookUrl, method, params });
 
+    // Validate URL format
+    try {
+      new URL(webhookUrl);
+    } catch (urlError) {
+      console.error('Invalid webhook URL format:', webhookUrl);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid webhook URL format',
+          details: 'Please check that your webhook URL is properly formatted'
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     let response;
     let lastError = null;
     
     if (method === 'POST') {
       // Try POST request first
       try {
+        console.log('Making POST request to:', webhookUrl);
         response = await fetch(webhookUrl, {
           method: 'POST',
           headers: {
@@ -41,6 +59,8 @@ serve(async (req) => {
           },
           body: JSON.stringify(params || {}),
         });
+
+        console.log('POST response status:', response.status, response.statusText);
 
         // If POST succeeds, use it
         if (response.ok) {
@@ -51,7 +71,7 @@ serve(async (req) => {
         }
       } catch (error) {
         lastError = `POST request failed: ${error.message}`;
-        console.log(lastError);
+        console.error('POST fetch error:', error);
         response = null;
       }
 
@@ -69,6 +89,7 @@ serve(async (req) => {
           }
           
           const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
+          console.log('Making GET request to:', getUrl);
           
           response = await fetch(getUrl, {
             method: 'GET',
@@ -78,13 +99,16 @@ serve(async (req) => {
             },
           });
 
+          console.log('GET response status:', response.status, response.statusText);
+
           if (response.ok) {
             console.log('GET request successful');
           } else {
             console.log(`GET also failed with ${response.status}: ${response.statusText}`);
           }
         } catch (error) {
-          console.log(`GET request failed: ${error.message}`);
+          console.error('GET fetch error:', error);
+          lastError = `Both POST and GET requests failed. Last error: ${error.message}`;
         }
       }
     } else if (method === 'GET') {
@@ -97,21 +121,29 @@ serve(async (req) => {
       }
       
       const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
+      console.log('Making GET request to:', getUrl);
       
-      response = await fetch(getUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'N8N-Dashboard-Webhook-Proxy/1.0',
-        },
-      });
+      try {
+        response = await fetch(getUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'N8N-Dashboard-Webhook-Proxy/1.0',
+          },
+        });
+        console.log('GET response status:', response.status, response.statusText);
+      } catch (error) {
+        console.error('GET fetch error:', error);
+        lastError = `GET request failed: ${error.message}`;
+      }
     }
 
     if (!response || !response.ok) {
       console.error('All webhook requests failed:', { 
         status: response?.status || 'No response', 
         statusText: response?.statusText || 'Network error',
-        lastError
+        lastError,
+        webhookUrl
       });
       
       // Try to get error details
@@ -119,22 +151,27 @@ serve(async (req) => {
       try {
         if (response) {
           errorText = await response.text();
+          console.log('Error response body:', errorText);
         }
       } catch (err) {
         console.log('Could not read error response body:', err);
         errorText = 'No error details available';
       }
       
-      // Provide helpful error messages based on common N8N issues
+      // Provide detailed error messages
       let userFriendlyError = '';
-      if (response?.status === 404) {
-        userFriendlyError = 'Webhook not found (404). Please check: 1) Is your N8N workflow activated? 2) Is the webhook URL correct? 3) If you connected nodes to your webhook trigger, the URL might have changed.';
-      } else if (response?.status === 500) {
-        userFriendlyError = 'N8N workflow execution error (500). Check your workflow for errors in the N8N interface.';
-      } else if (!response) {
-        userFriendlyError = 'Could not connect to webhook URL. Please verify the URL is accessible.';
+      if (!response) {
+        userFriendlyError = `Unable to reach webhook URL: ${webhookUrl}. Please check: 1) Is your N8N instance running and accessible? 2) Is the URL correct? 3) Are there any network restrictions?`;
+      } else if (response.status === 404) {
+        userFriendlyError = `Webhook not found (404): ${webhookUrl}. Please check: 1) Is your N8N workflow activated? 2) Is the webhook URL correct? 3) Did the URL change after connecting nodes to your webhook trigger?`;
+      } else if (response.status === 500) {
+        userFriendlyError = `N8N workflow execution error (500). Check your workflow for errors in the N8N interface. URL: ${webhookUrl}`;
+      } else if (response.status >= 400 && response.status < 500) {
+        userFriendlyError = `Client error (${response.status}): ${response.statusText}. URL: ${webhookUrl}`;
+      } else if (response.status >= 500) {
+        userFriendlyError = `Server error (${response.status}): ${response.statusText}. URL: ${webhookUrl}`;
       } else {
-        userFriendlyError = `HTTP ${response.status}: ${response.statusText}`;
+        userFriendlyError = `HTTP ${response.status}: ${response.statusText}. URL: ${webhookUrl}`;
       }
       
       return new Response(
@@ -142,7 +179,8 @@ serve(async (req) => {
           error: userFriendlyError,
           details: errorText,
           status: response?.status || 0,
-          lastError
+          lastError,
+          webhookUrl: webhookUrl
         }),
         { 
           status: response?.status || 500, 
@@ -155,6 +193,8 @@ serve(async (req) => {
     let result;
     try {
       const responseText = await response.text();
+      console.log('Response received:', responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''));
+      
       if (responseText) {
         try {
           result = JSON.parse(responseText);
@@ -170,7 +210,7 @@ serve(async (req) => {
       result = { message: 'Webhook executed successfully' };
     }
 
-    console.log('Webhook response received:', result);
+    console.log('Webhook response processed successfully');
 
     return new Response(
       JSON.stringify(result),
@@ -185,13 +225,16 @@ serve(async (req) => {
     let errorMessage = 'An unexpected error occurred';
     
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      errorMessage = 'Network error: Unable to reach webhook URL. Please check the URL and ensure it\'s accessible.';
+      errorMessage = 'Network error: Unable to reach webhook URL. Please check the URL and ensure your N8N instance is accessible.';
     } else if (error instanceof Error) {
       errorMessage = error.message;
     }
 
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: error.stack || 'No additional details available'
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
