@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -81,26 +82,26 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-white">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-gray-900">{summary.total}</div>
-            <div className="text-sm text-gray-500">Total</div>
+            <div className="text-2xl font-bold text-black">{summary.total}</div>
+            <div className="text-sm text-black">Total</div>
           </CardContent>
         </Card>
         <Card className="bg-white">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">{summary.running}</div>
-            <div className="text-sm text-gray-500">Running</div>
+            <div className="text-sm text-black">Running</div>
           </CardContent>
         </Card>
         <Card className="bg-white">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-green-600">{summary.successful}</div>
-            <div className="text-sm text-gray-500">Successful</div>
+            <div className="text-sm text-black">Successful</div>
           </CardContent>
         </Card>
         <Card className="bg-white">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-red-600">{summary.failed}</div>
-            <div className="text-sm text-gray-500">Failed</div>
+            <div className="text-sm text-black">Failed</div>
           </CardContent>
         </Card>
       </div>
@@ -116,21 +117,21 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
                   placeholder="Search workflows..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-black"
                 />
               </div>
             </div>
             <div className="sm:w-48">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="text-black">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="running">Running</SelectItem>
-                  <SelectItem value="success">Successful</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
+                <SelectContent className="bg-white">
+                  <SelectItem value="all" className="text-black">All Status</SelectItem>
+                  <SelectItem value="running" className="text-black">Running</SelectItem>
+                  <SelectItem value="success" className="text-black">Successful</SelectItem>
+                  <SelectItem value="failed" className="text-black">Failed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -141,8 +142,8 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
       {/* Execution List */}
       <Card className="bg-white">
         <CardHeader>
-          <CardTitle className="text-gray-900">Recent Executions</CardTitle>
-          <CardDescription className="text-gray-600">
+          <CardTitle className="text-black">Recent Executions</CardTitle>
+          <CardDescription className="text-black">
             {filteredExecutions.length} execution{filteredExecutions.length !== 1 ? 's' : ''} found
           </CardDescription>
         </CardHeader>
@@ -150,8 +151,8 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
           {filteredExecutions.length === 0 ? (
             <div className="text-center py-12">
               <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Executions Found</h3>
-              <p className="text-gray-500">
+              <h3 className="text-lg font-medium text-black mb-2">No Executions Found</h3>
+              <p className="text-black">
                 {searchTerm || statusFilter !== 'all' 
                   ? 'Try adjusting your search or filter criteria' 
                   : 'Workflow executions will appear here once you start running workflows'
@@ -167,8 +168,8 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
                       <div className="flex items-center space-x-4">
                         {getStatusIcon(execution.status)}
                         <div>
-                          <div className="font-medium text-gray-900">{execution.workflowName}</div>
-                          <div className="text-sm text-gray-500">
+                          <div className="font-medium text-black">{execution.workflowName}</div>
+                          <div className="text-sm text-black">
                             Started: {execution.startTime.toLocaleString()}
                           </div>
                         </div>
@@ -176,11 +177,11 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
                       
                       <div className="flex items-center space-x-4">
                         <div className="text-right hidden sm:block">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-black">
                             Duration: {formatDuration(execution.duration)}
                           </div>
                           {execution.endTime && (
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-black">
                               Ended: {execution.endTime.toLocaleString()}
                             </div>
                           )}
@@ -192,6 +193,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="text-black"
                             onClick={() => setExpandedExecution(
                               expandedExecution === execution.id ? null : execution.id
                             )}
@@ -211,29 +213,29 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
                     <div className="px-4 pb-4 bg-gray-50">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <h4 className="font-medium text-gray-900 mb-2">Execution Details</h4>
+                          <h4 className="font-medium text-black mb-2">Execution Details</h4>
                           <dl className="space-y-1">
                             <div className="flex justify-between">
-                              <dt className="text-gray-500">Execution ID:</dt>
-                              <dd className="font-mono text-xs text-gray-900">{execution.id}</dd>
+                              <dt className="text-black">Execution ID:</dt>
+                              <dd className="font-mono text-xs text-black">{execution.id}</dd>
                             </div>
                             <div className="flex justify-between">
-                              <dt className="text-gray-500">Workflow ID:</dt>
-                              <dd className="font-mono text-xs text-gray-900">{execution.workflowId}</dd>
+                              <dt className="text-black">Workflow ID:</dt>
+                              <dd className="font-mono text-xs text-black">{execution.workflowId}</dd>
                             </div>
                             <div className="flex justify-between">
-                              <dt className="text-gray-500">Status:</dt>
-                              <dd className="text-gray-900">{execution.status}</dd>
+                              <dt className="text-black">Status:</dt>
+                              <dd className="text-black">{execution.status}</dd>
                             </div>
                             <div className="flex justify-between">
-                              <dt className="text-gray-500">Duration:</dt>
-                              <dd className="text-gray-900">{formatDuration(execution.duration)}</dd>
+                              <dt className="text-black">Duration:</dt>
+                              <dd className="text-black">{formatDuration(execution.duration)}</dd>
                             </div>
                           </dl>
                         </div>
                         
                         <div>
-                          <h4 className="font-medium text-gray-900 mb-2">
+                          <h4 className="font-medium text-black mb-2">
                             {execution.status === 'failed' ? 'Error Details' : 'Result'}
                           </h4>
                           <div className="bg-white p-3 rounded border max-h-32 overflow-y-auto">
@@ -242,14 +244,14 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
                                 {execution.error}
                               </pre>
                             ) : execution.result ? (
-                              <pre className="text-gray-900 text-xs whitespace-pre-wrap">
+                              <pre className="text-black text-xs whitespace-pre-wrap">
                                 {typeof execution.result === 'string' 
                                   ? execution.result 
                                   : JSON.stringify(execution.result, null, 2)
                                 }
                               </pre>
                             ) : (
-                              <span className="text-gray-500 text-xs">No additional details</span>
+                              <span className="text-black text-xs">No additional details</span>
                             )}
                           </div>
                         </div>
