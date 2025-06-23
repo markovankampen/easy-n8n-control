@@ -373,28 +373,28 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-400 to-orange-400 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center animate-bounce-in">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mx-auto mb-4 shadow-lg hover-glow"></div>
-          <p className="text-white font-semibold text-lg drop-shadow-lg glow-text">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-400 border-t-transparent mx-auto mb-4 shadow-lg hover-glow"></div>
+          <p className="text-purple-200 font-semibold text-lg drop-shadow-lg glow-text">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-400 to-orange-400">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 shadow-xl border-b border-purple-300">
+      <header className="bg-gradient-to-r from-slate-800 via-purple-800 to-slate-800 shadow-xl border-b border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4 group">
-              <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-3 rounded-xl shadow-lg card-hover floating">
+              <div className="bg-gradient-to-br from-purple-600 to-indigo-600 p-3 rounded-xl shadow-lg card-hover floating">
                 <Zap className="h-6 w-6 text-white animate-pulse hover:animate-bounce" />
               </div>
               <div className="hover:scale-105 transition-all duration-300">
-                <h1 className="text-xl font-bold text-white drop-shadow-lg hover:glow-text transition-all duration-300">N8N Workflow Dashboard</h1>
-                <p className="text-sm text-blue-100 drop-shadow hover:text-yellow-200 transition-colors duration-300">Control and monitor your automation workflows</p>
+                <h1 className="text-xl font-bold text-purple-100 drop-shadow-lg hover:glow-text transition-all duration-300">N8N Workflow Dashboard</h1>
+                <p className="text-sm text-slate-300 drop-shadow hover:text-purple-200 transition-colors duration-300">Control and monitor your automation workflows</p>
               </div>
             </div>
             
@@ -406,7 +406,7 @@ const Index = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsConfigOpen(true)}
-                className="flex items-center space-x-2 bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30 button-hover shadow-lg"
+                className="flex items-center space-x-2 bg-slate-800/50 backdrop-blur-sm border-slate-600 text-purple-100 hover:bg-slate-700/50 button-hover shadow-lg"
               >
                 <Settings className="h-4 w-4 transition-transform duration-300 hover:rotate-45" />
                 <span>Configure</span>
@@ -417,15 +417,15 @@ const Index = () => {
       </header>
 
       {/* Navigation Tabs */}
-      <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 border-b border-purple-300 shadow-lg">
+      <div className="bg-gradient-to-r from-slate-800 via-purple-800 to-slate-800 border-b border-slate-700 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8" aria-label="Tabs">
             <button
               onClick={() => setSelectedTab('control')}
               className={`${
                 selectedTab === 'control'
-                  ? 'border-yellow-300 text-yellow-200 bg-white/20 backdrop-blur-sm animate-pulse'
-                  : 'border-transparent text-white/80 hover:text-white hover:border-white/50 hover:bg-white/10'
+                  ? 'border-purple-400 text-purple-200 bg-slate-800/30 backdrop-blur-sm animate-pulse'
+                  : 'border-transparent text-slate-300 hover:text-purple-200 hover:border-slate-500 hover:bg-slate-800/20'
               } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
               style={{ animationDelay: '0.1s' }}
             >
@@ -436,8 +436,8 @@ const Index = () => {
               onClick={() => setSelectedTab('data')}
               className={`${
                 selectedTab === 'data'
-                  ? 'border-green-300 text-green-200 bg-white/20 backdrop-blur-sm animate-pulse'
-                  : 'border-transparent text-white/80 hover:text-white hover:border-white/50 hover:bg-white/10'
+                  ? 'border-green-400 text-green-200 bg-slate-800/30 backdrop-blur-sm animate-pulse'
+                  : 'border-transparent text-slate-300 hover:text-purple-200 hover:border-slate-500 hover:bg-slate-800/20'
               } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
               style={{ animationDelay: '0.2s' }}
             >
@@ -448,8 +448,8 @@ const Index = () => {
               onClick={() => setSelectedTab('activity')}
               className={`${
                 selectedTab === 'activity'
-                  ? 'border-blue-300 text-blue-200 bg-white/20 backdrop-blur-sm animate-pulse'
-                  : 'border-transparent text-white/80 hover:text-white hover:border-white/50 hover:bg-white/10'
+                  ? 'border-blue-400 text-blue-200 bg-slate-800/30 backdrop-blur-sm animate-pulse'
+                  : 'border-transparent text-slate-300 hover:text-purple-200 hover:border-slate-500 hover:bg-slate-800/20'
               } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
               style={{ animationDelay: '0.3s' }}
             >
@@ -460,8 +460,8 @@ const Index = () => {
               onClick={() => setSelectedTab('insights')}
               className={`${
                 selectedTab === 'insights'
-                  ? 'border-orange-300 text-orange-200 bg-white/20 backdrop-blur-sm animate-pulse'
-                  : 'border-transparent text-white/80 hover:text-white hover:border-white/50 hover:bg-white/10'
+                  ? 'border-orange-400 text-orange-200 bg-slate-800/30 backdrop-blur-sm animate-pulse'
+                  : 'border-transparent text-slate-300 hover:text-purple-200 hover:border-slate-500 hover:bg-slate-800/20'
               } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
               style={{ animationDelay: '0.4s' }}
             >
