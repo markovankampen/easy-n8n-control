@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -197,13 +196,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
           </TabsList>
 
           <TabsContent value="workflows" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Your Workflows</h3>
-              <Button onClick={() => { resetForm(); setActiveTab('create'); }}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Workflow
-              </Button>
-            </div>
+            <h3 className="text-lg font-semibold">Your Workflows</h3>
             
             <div className="space-y-4">
               {workflows.map((workflow) => (
