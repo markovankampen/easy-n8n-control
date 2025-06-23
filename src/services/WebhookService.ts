@@ -6,7 +6,7 @@ export class WebhookService {
     }
 
     try {
-      console.log('Triggering workflow:', { webhookUrl, params });
+      console.log('Triggering workflow directly:', { webhookUrl, params });
       
       // First try POST request
       let response = await fetch(webhookUrl, {
@@ -17,32 +17,36 @@ export class WebhookService {
         body: JSON.stringify(params || {}),
       });
 
-      // If we get a 404 with the specific message about POST not being registered, try GET
+      // If we get a 404, the webhook might not be registered - try GET as fallback
       if (!response.ok && response.status === 404) {
-        const errorText = await response.text();
-        if (errorText.includes('not registered for POST requests')) {
-          console.log('POST not supported, trying GET request');
-          
-          // Convert params to URL search params for GET request
-          const urlParams = new URLSearchParams();
-          if (params) {
-            Object.entries(params).forEach(([key, value]) => {
-              urlParams.append(key, String(value));
-            });
-          }
-          
-          const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
-          
-          response = await fetch(getUrl, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+        console.log('POST failed with 404, trying GET request');
+        
+        // Convert params to URL search params for GET request
+        const urlParams = new URLSearchParams();
+        if (params) {
+          Object.entries(params).forEach(([key, value]) => {
+            urlParams.append(key, String(value));
           });
         }
+        
+        const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
+        
+        response = await fetch(getUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
       }
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Webhook request failed:', { status: response.status, statusText: response.statusText, body: errorText });
+        
+        if (response.status === 404) {
+          throw new Error('Webhook not found (404). Please check: 1) Is your N8N workflow activated? 2) Is the webhook URL correct? 3) Did the URL change after connecting nodes to your webhook trigger?');
+        }
+        
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
@@ -87,23 +91,20 @@ export class WebhookService {
 
       // If POST fails with 404, try GET
       if (!response.ok && response.status === 404) {
-        const errorText = await response.text();
-        if (errorText.includes('not registered for POST requests')) {
-          console.log('POST not supported for test, trying GET request');
-          
-          response = await fetch(`${webhookUrl}?test=true&timestamp=${encodeURIComponent(new Date().toISOString())}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-        }
+        console.log('POST not supported for test, trying GET request');
+        
+        response = await fetch(`${webhookUrl}?test=true&timestamp=${encodeURIComponent(new Date().toISOString())}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
       }
 
       // Accept any response code as long as the request went through
       console.log('Test response status:', response.status);
       
-      return true;
+      return response.status < 500; // Accept 200s, 300s, 400s but not 500s
     } catch (error) {
       console.error('Connection test failed:', error);
       
