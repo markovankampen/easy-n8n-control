@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { WorkflowExecution } from '../pages/Index';
-import { TrendingUp, Target, AlertTriangle, Search, Filter, Eye, EyeOff, BarChart3, PieChart, Users, Trophy, Activity, ChevronDown, MessageSquare, Clock, Bell, FileText } from 'lucide-react';
+import { TrendingUp, Target, AlertTriangle, Search, Filter, Eye, EyeOff, BarChart3, PieChart, Users, Trophy, Activity, ChevronDown, MessageSquare, Clock, Bell, FileText, LucideIcon } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
 
@@ -23,7 +23,7 @@ interface InsightSummary {
   change?: string;
   trend?: 'up' | 'down' | 'stable';
   lastUpdated: Date;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   color: string;
   details: any[];
 }
@@ -33,7 +33,7 @@ interface MetricCard {
   value: string | number;
   subtitle: string;
   trend: 'up' | 'down' | 'stable';
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   color: string;
 }
 
