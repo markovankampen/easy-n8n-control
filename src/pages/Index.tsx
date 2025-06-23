@@ -186,7 +186,7 @@ const Index = () => {
     const updatedWorkflows = workflows.map(w => 
       w.id === workflowId ? {
         ...w,
-        status: execution.status === 'success' ? 'success' : 'failed',
+        status: (execution.status === 'success' ? 'success' : 'failed') as Workflow['status'],
         lastRun: execution.endTime,
         executionCount: newExecutionCount,
         successRate: newSuccessRate,
