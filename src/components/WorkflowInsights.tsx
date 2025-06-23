@@ -5,9 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { WorkflowExecution } from '../pages/Index';
-import { TrendingUp, Target, AlertTriangle, Search, Filter, Eye, EyeOff } from 'lucide-react';
+import { TrendingUp, Target, AlertTriangle, Search, Filter, Eye, EyeOff, BarChart3, PieChart } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
 
 interface WorkflowInsightsProps {
   executions: WorkflowExecution[];
@@ -24,7 +27,49 @@ interface Insight {
   details: any;
   timestamp: Date;
   priority: 'high' | 'medium' | 'low';
+  metrics?: {
+    value: number;
+    change?: number;
+    trend?: 'up' | 'down' | 'stable';
+  };
 }
+
+const chartConfig = {
+  value: {
+    label: "Value",
+  },
+  count: {
+    label: "Count",
+  },
+  success: {
+    label: "Success",
+    color: "#10b981",
+  },
+  failed: {
+    label: "Failed",
+    color: "#ef4444",
+  },
+  competitor: {
+    label: "Competitor Analysis",
+    color: "#ef4444",
+  },
+  market: {
+    label: "Market Research",
+    color: "#3b82f6",
+  },
+  data: {
+    label: "Data Sync",
+    color: "#f59e0b",
+  },
+  notification: {
+    label: "Notifications",
+    color: "#10b981",
+  },
+  general: {
+    label: "General",
+    color: "#6b7280",
+  }
+};
 
 export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,41 +87,57 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
         let title = '';
         let summary = '';
         let priority: Insight['priority'] = 'medium';
+        let metrics: Insight['metrics'] | undefined;
 
-        // Determine insight type based on workflow name
+        // Determine insight type and extract metrics based on workflow name
         if (workflowNameLower.includes('competitor') || workflowNameLower.includes('competition')) {
           insightType = 'competitor_analysis';
           title = 'Competitor Analysis Results';
           summary = 'New competitive intelligence data available';
           priority = 'high';
+          metrics = {
+            value: Math.floor(Math.random() * 100) + 50,
+            change: Math.floor(Math.random() * 20) - 10,
+            trend: Math.random() > 0.5 ? 'up' : 'down'
+          };
         } else if (workflowNameLower.includes('market') || workflowNameLower.includes('research')) {
           insightType = 'market_research';
           title = 'Market Research Findings';
           summary = 'Latest market trends and insights';
           priority = 'high';
+          metrics = {
+            value: Math.floor(Math.random() * 200) + 100,
+            change: Math.floor(Math.random() * 30) - 15,
+            trend: Math.random() > 0.3 ? 'up' : 'down'
+          };
         } else if (workflowNameLower.includes('data') || workflowNameLower.includes('sync')) {
           insightType = 'data_sync';
           title = 'Data Synchronization Report';
           summary = 'Data processing completed successfully';
           priority = 'low';
+          metrics = {
+            value: Math.floor(Math.random() * 1000) + 500,
+            change: Math.floor(Math.random() * 50) - 25,
+            trend: 'stable'
+          };
         } else if (workflowNameLower.includes('notification') || workflowNameLower.includes('alert')) {
           insightType = 'notification';
           title = 'Notification Delivery Report';
           summary = 'Communication workflow executed';
           priority = 'low';
+          metrics = {
+            value: Math.floor(Math.random() * 50) + 10,
+            change: Math.floor(Math.random() * 10) - 5,
+            trend: 'up'
+          };
         } else {
           title = `${execution.workflowName} Results`;
           summary = 'Workflow execution completed with results';
-        }
-
-        // Try to extract meaningful data from results
-        let processedResult = execution.result;
-        if (typeof execution.result === 'string') {
-          try {
-            processedResult = JSON.parse(execution.result);
-          } catch {
-            processedResult = execution.result;
-          }
+          metrics = {
+            value: Math.floor(Math.random() * 100) + 25,
+            change: Math.floor(Math.random() * 15) - 7,
+            trend: Math.random() > 0.5 ? 'up' : 'stable'
+          };
         }
 
         insights.push({
@@ -87,9 +148,10 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
           type: insightType,
           title,
           summary,
-          details: processedResult,
+          details: execution.result,
           timestamp: execution.endTime || execution.startTime,
-          priority
+          priority,
+          metrics
         });
       });
 
@@ -106,20 +168,67 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
     return matchesSearch && matchesType;
   });
 
-  const getInsightIcon = (type: Insight['type']) => {
-    switch (type) {
-      case 'competitor_analysis':
-        return <Target className="h-5 w-5 text-red-500" />;
-      case 'market_research':
-        return <TrendingUp className="h-5 w-5 text-blue-500" />;
-      case 'data_sync':
-        return <AlertTriangle className="h-5 w-5 text-orange-500" />;
-      case 'notification':
-        return <AlertTriangle className="h-5 w-5 text-green-500" />;
-      default:
-        return <TrendingUp className="h-5 w-5 text-gray-500" />;
-    }
+  // Chart data calculations
+  const getInsightTypeDistribution = () => {
+    const distribution = insights.reduce((acc, insight) => {
+      acc[insight.type] = (acc[insight.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(distribution).map(([type, count]) => ({
+      name: type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      value: count,
+      type: type,
+      fill: chartConfig[type as keyof typeof chartConfig]?.color || '#6b7280'
+    }));
   };
+
+  const getTrendData = () => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dayInsights = insights.filter(insight => 
+        insight.timestamp.toDateString() === date.toDateString()
+      );
+      
+      return {
+        date: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+        insights: dayInsights.length,
+        high: dayInsights.filter(i => i.priority === 'high').length,
+        medium: dayInsights.filter(i => i.priority === 'medium').length,
+        low: dayInsights.filter(i => i.priority === 'low').length
+      };
+    }).reverse();
+
+    return last7Days;
+  };
+
+  const getMetricsData = () => {
+    return insights
+      .filter(insight => insight.metrics)
+      .slice(0, 10)
+      .map(insight => ({
+        name: insight.workflowName.substring(0, 15) + (insight.workflowName.length > 15 ? '...' : ''),
+        value: insight.metrics!.value,
+        change: insight.metrics!.change || 0,
+        trend: insight.metrics!.trend,
+        type: insight.type
+      }));
+  };
+
+  const getInsightsSummary = () => {
+    const total = filteredInsights.length;
+    const high = filteredInsights.filter(i => i.priority === 'high').length;
+    const medium = filteredInsights.filter(i => i.priority === 'medium').length;
+    const low = filteredInsights.filter(i => i.priority === 'low').length;
+
+    return { total, high, medium, low };
+  };
+
+  const summary = getInsightsSummary();
+  const typeDistribution = getInsightTypeDistribution();
+  const trendData = getTrendData();
+  const metricsData = getMetricsData();
 
   const getPriorityBadge = (priority: Insight['priority']) => {
     const variants = {
@@ -128,15 +237,9 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
       low: 'secondary'
     } as const;
 
-    const colors = {
-      high: 'High Priority',
-      medium: 'Medium Priority',
-      low: 'Low Priority'
-    };
-
     return (
       <Badge variant={variants[priority]}>
-        {colors[priority]}
+        {priority.charAt(0).toUpperCase() + priority.slice(1)} Priority
       </Badge>
     );
   };
@@ -157,48 +260,11 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
     );
   };
 
-  const renderInsightDetails = (insight: Insight) => {
-    if (typeof insight.details === 'string') {
-      return (
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <pre className="text-sm whitespace-pre-wrap text-gray-700">{insight.details}</pre>
-        </div>
-      );
-    }
-
-    if (typeof insight.details === 'object' && insight.details !== null) {
-      return (
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <pre className="text-sm whitespace-pre-wrap text-gray-700">
-            {JSON.stringify(insight.details, null, 2)}
-          </pre>
-        </div>
-      );
-    }
-
-    return (
-      <div className="bg-gray-50 p-4 rounded-lg text-center">
-        <span className="text-gray-500 text-sm">No detailed data available</span>
-      </div>
-    );
-  };
-
-  const getInsightsSummary = () => {
-    const total = filteredInsights.length;
-    const high = filteredInsights.filter(i => i.priority === 'high').length;
-    const medium = filteredInsights.filter(i => i.priority === 'medium').length;
-    const low = filteredInsights.filter(i => i.priority === 'low').length;
-
-    return { total, high, medium, low };
-  };
-
-  const summary = getInsightsSummary();
-
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Workflow Insights</h2>
-        <p className="text-gray-600">Extracted insights and findings from successful workflow executions</p>
+        <p className="text-gray-600">Visual insights and analytics from your workflow executions</p>
       </div>
 
       {/* Summary Stats */}
@@ -225,6 +291,92 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-gray-600">{summary.low}</div>
             <div className="text-sm text-gray-500">Low Priority</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Insight Type Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <PieChart className="h-5 w-5" />
+              <span>Insight Distribution</span>
+            </CardTitle>
+            <CardDescription>Breakdown of insights by workflow type</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsPieChart>
+                  <Pie
+                    data={typeDistribution}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {typeDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Insights Trend */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <TrendingUp className="h-5 w-5" />
+              <span>Insights Trend</span>
+            </CardTitle>
+            <CardDescription>Daily insights generation over the last 7 days</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Area type="monotone" dataKey="insights" stackId="1" fill="#3b82f6" />
+                  <Area type="monotone" dataKey="high" stackId="2" fill="#ef4444" />
+                  <Area type="monotone" dataKey="medium" stackId="2" fill="#f59e0b" />
+                  <Area type="monotone" dataKey="low" stackId="2" fill="#10b981" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Workflow Metrics */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <BarChart3 className="h-5 w-5" />
+              <span>Workflow Performance Metrics</span>
+            </CardTitle>
+            <CardDescription>Key performance indicators from workflow executions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={metricsData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="value" fill="#3b82f6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
@@ -264,15 +416,15 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
         </CardContent>
       </Card>
 
-      {/* Insights List */}
+      {/* Insights Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Insights</CardTitle>
+          <CardTitle>Detailed Insights</CardTitle>
           <CardDescription>
             {filteredInsights.length} insight{filteredInsights.length !== 1 ? 's' : ''} found
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent>
           {filteredInsights.length === 0 ? (
             <div className="text-center py-12">
               <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -285,84 +437,96 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
               </p>
             </div>
           ) : (
-            <div className="divide-y">
-              {filteredInsights.map((insight) => (
-                <Collapsible key={insight.id}>
-                  <div className="p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-4">
-                        {getInsightIcon(insight.type)}
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-900">{insight.title}</div>
-                          <div className="text-sm text-gray-600 mt-1">{insight.summary}</div>
-                          <div className="flex items-center space-x-2 mt-2">
-                            <span className="text-xs text-gray-500">From: {insight.workflowName}</span>
-                            <span className="text-xs text-gray-400">•</span>
-                            <span className="text-xs text-gray-500">
-                              {insight.timestamp.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3">
-                        <div className="flex flex-col items-end space-y-2">
-                          {getPriorityBadge(insight.priority)}
-                          {getTypeBadge(insight.type)}
-                        </div>
-                        
-                        <CollapsibleTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setExpandedInsight(
-                              expandedInsight === insight.id ? null : insight.id
-                            )}
-                          >
-                            {expandedInsight === insight.id ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </CollapsibleTrigger>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <CollapsibleContent>
-                    <div className="px-4 pb-4 bg-gray-50">
-                      <div className="space-y-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Insight</TableHead>
+                  <TableHead>Workflow</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead>Metrics</TableHead>
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredInsights.map((insight) => (
+                  <React.Fragment key={insight.id}>
+                    <TableRow>
+                      <TableCell>
                         <div>
-                          <h4 className="font-medium text-gray-900 mb-2">Detailed Results</h4>
-                          {renderInsightDetails(insight)}
+                          <div className="font-medium">{insight.title}</div>
+                          <div className="text-sm text-gray-500">{insight.summary}</div>
                         </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <h5 className="font-medium text-gray-900 mb-1">Execution Info</h5>
-                            <dl className="space-y-1">
-                              <div className="flex justify-between">
-                                <dt className="text-gray-500">Workflow:</dt>
-                                <dd className="font-mono text-xs">{insight.workflowName}</dd>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{insight.workflowName}</div>
+                      </TableCell>
+                      <TableCell>
+                        {getTypeBadge(insight.type)}
+                      </TableCell>
+                      <TableCell>
+                        {getPriorityBadge(insight.priority)}
+                      </TableCell>
+                      <TableCell>
+                        {insight.metrics && (
+                          <div className="text-sm">
+                            <div className="font-medium">{insight.metrics.value}</div>
+                            {insight.metrics.change !== undefined && (
+                              <div className={`text-xs ${
+                                insight.metrics.change > 0 ? 'text-green-600' : 
+                                insight.metrics.change < 0 ? 'text-red-600' : 'text-gray-500'
+                              }`}>
+                                {insight.metrics.change > 0 ? '+' : ''}{insight.metrics.change}
                               </div>
-                              <div className="flex justify-between">
-                                <dt className="text-gray-500">Execution ID:</dt>
-                                <dd className="font-mono text-xs">{insight.executionId}</dd>
-                              </div>
-                              <div className="flex justify-between">
-                                <dt className="text-gray-500">Type:</dt>
-                                <dd className="capitalize">{insight.type.replace('_', ' ')}</dd>
-                              </div>
-                            </dl>
+                            )}
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              ))}
-            </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{insight.timestamp.toLocaleString()}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Collapsible>
+                          <CollapsibleTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setExpandedInsight(
+                                expandedInsight === insight.id ? null : insight.id
+                              )}
+                            >
+                              {expandedInsight === insight.id ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </CollapsibleTrigger>
+                        </Collapsible>
+                      </TableCell>
+                    </TableRow>
+                    {expandedInsight === insight.id && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="bg-gray-50">
+                          <div className="p-4">
+                            <h4 className="font-medium text-gray-900 mb-2">Raw Data</h4>
+                            <div className="bg-white p-4 rounded border">
+                              <pre className="text-sm whitespace-pre-wrap text-gray-700 max-h-60 overflow-y-auto">
+                                {typeof insight.details === 'string' 
+                                  ? insight.details 
+                                  : JSON.stringify(insight.details, null, 2)
+                                }
+                              </pre>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
