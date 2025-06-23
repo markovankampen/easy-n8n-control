@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -74,76 +75,69 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
     return executions.filter(exec => exec.workflowId === selectedWorkflow);
   }, [executions, selectedWorkflow]);
 
-  // Generate metric cards based on executions
+  // Generate metric cards based on real executions data
   const generateMetricCards = (executions: WorkflowExecution[]): MetricCard[] => {
     const cards: MetricCard[] = [];
     const successfulExecutions = executions.filter(exec => exec.status === 'success');
+    const runningExecutions = executions.filter(exec => exec.status === 'running');
+    const failedExecutions = executions.filter(exec => exec.status === 'failed');
+    
+    // Get recent executions (last 24 hours)
     const recentExecutions = executions.filter(exec => {
       const executionDate = exec.endTime || exec.startTime;
-      const daysDiff = Math.floor((Date.now() - executionDate.getTime()) / (1000 * 60 * 60 * 24));
-      return daysDiff <= 7;
+      const hoursDiff = Math.floor((Date.now() - executionDate.getTime()) / (1000 * 60 * 60));
+      return hoursDiff <= 24;
     });
 
-    // Active Trends
-    const trendingExecutions = executions.filter(exec => 
-      exec.workflowName.toLowerCase().includes('trend') || 
-      exec.workflowName.toLowerCase().includes('analytics')
-    );
+    // Active Trends - based on successful recent executions
+    const trendingExecutions = recentExecutions.filter(exec => exec.status === 'success');
     
     cards.push({
       title: 'Active Trends',
       value: trendingExecutions.length,
-      subtitle: `Creative leading at ${Math.round((trendingExecutions.length / Math.max(executions.length, 1)) * 100000)}`,
-      trend: trendingExecutions.length > 0 ? 'up' : 'stable',
+      subtitle: `${recentExecutions.length} executions today`,
+      trend: trendingExecutions.length > failedExecutions.length ? 'up' : trendingExecutions.length === 0 && failedExecutions.length === 0 ? 'stable' : 'down',
       icon: TrendingUp,
       color: '#10b981'
     });
 
-    // Tracked Influencers
-    const influencerExecutions = executions.filter(exec => 
-      exec.workflowName.toLowerCase().includes('influencer') || 
-      exec.workflowName.toLowerCase().includes('social')
-    );
+    // Tracked Workflows - count of unique workflows
+    const uniqueWorkflowCount = new Set(executions.map(exec => exec.workflowId)).size;
     
     cards.push({
-      title: 'Tracked Influencers',
-      value: influencerExecutions.length,
-      subtitle: `${Math.round(influencerExecutions.length * 0.48)}M avg followers`,
-      trend: influencerExecutions.length > 2 ? 'up' : 'stable',
+      title: 'Tracked Workflows',
+      value: uniqueWorkflowCount,
+      subtitle: `${runningExecutions.length} currently running`,
+      trend: runningExecutions.length > 0 ? 'up' : 'stable',
       icon: Users,
       color: '#3b82f6'
     });
 
-    // Content Ready
-    const contentExecutions = executions.filter(exec => 
-      exec.workflowName.toLowerCase().includes('content') || 
-      exec.workflowName.toLowerCase().includes('review')
-    );
+    // Content Ready - successful executions with results
+    const contentExecutions = successfulExecutions.filter(exec => exec.result);
     
     cards.push({
       title: 'Content Ready',
       value: contentExecutions.length,
-      subtitle: `${Math.max(1, Math.floor(contentExecutions.length / 2))} pending approval`,
+      subtitle: `${Math.max(0, successfulExecutions.length - contentExecutions.length)} pending data`,
       trend: contentExecutions.length > 0 ? 'up' : 'stable',
       icon: MessageSquare,
       color: '#8b5cf6'
     });
 
-    // Review Sentiment
-    const reviewExecutions = executions.filter(exec => 
-      exec.workflowName.toLowerCase().includes('review') || 
-      exec.workflowName.toLowerCase().includes('sentiment')
-    );
-    
-    const sentimentScore = reviewExecutions.length > 0 ? Math.min(95, 70 + (reviewExecutions.length * 5)) : 0;
+    // Success Rate - based on completed executions
+    const completedExecutions = executions.filter(exec => exec.status !== 'running');
+    const successRate = completedExecutions.length > 0 
+      ? Math.round((successfulExecutions.length / completedExecutions.length) * 100) 
+      : 0;
     
     cards.push({
-      title: 'Review Sentiment',
-      value: `${sentimentScore}%`,
-      subtitle: 'Positive reviews',
-      trend: sentimentScore > 80 ? 'up' : sentimentScore > 60 ? 'stable' : 'down',
-      icon: MessageSquareX,
-      color: sentimentScore > 80 ? '#10b981' : sentimentScore > 60 ? '#f59e0b' : '#ef4444'
+      title: 'Success Rate',
+      value: `${successRate}%`,
+      subtitle: `${successfulExecutions.length}/${completedExecutions.length} successful`,
+      trend: successRate >= 80 ? 'up' : successRate >= 60 ? 'stable' : 'down',
+      icon: Trophy,
+      color: successRate >= 80 ? '#10b981' : successRate >= 60 ? '#f59e0b' : '#ef4444'
     });
 
     return cards;
@@ -353,6 +347,36 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
 
   return (
     <div className="space-y-6">
+      {/* Metric Cards - Above title */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {metricCards.map((card, index) => {
+          const Icon = card.icon;
+          return (
+            <Card key={index} className="relative overflow-hidden">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-medium text-gray-600 mb-1">{card.title}</h3>
+                    <p className="text-2xl font-bold text-gray-900 mb-1">{card.value}</p>
+                    <p className="text-xs text-gray-500">{card.subtitle}</p>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <div 
+                      className="p-2 rounded-lg mb-2"
+                      style={{ backgroundColor: `${card.color}20` }}
+                    >
+                      <Icon className="h-5 w-5" color={card.color} />
+                    </div>
+                    {getTrendIcon(card.trend)}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Workflow Insights</h2>
@@ -376,35 +400,6 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {metricCards.map((card, index) => {
-          const Icon = card.icon;
-          return (
-            <Card key={index} className="relative overflow-hidden">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-gray-600 mb-1">{card.title}</h3>
-                    <p className="text-2xl font-bold text-gray-900 mb-1">{card.value}</p>
-                    <p className="text-xs text-gray-500">{card.subtitle}</p>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <div 
-                      className="p-2 rounded-lg mb-2"
-                      style={{ backgroundColor: `${card.color}20` }}
-                    >
-                      <Icon className="h-5 w-5" style={{ color: card.color }} />
-                    </div>
-                    {getTrendIcon(card.trend)}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
       </div>
 
       {/* Workflow Statistics */}
@@ -538,7 +533,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
                         className="p-2 rounded-lg"
                         style={{ backgroundColor: `${summary.color}20` }}
                       >
-                        <Icon className="h-6 w-6" style={{ color: summary.color }} />
+                        <Icon className="h-6 w-6" color={summary.color} />
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900">{summary.title}</h3>
