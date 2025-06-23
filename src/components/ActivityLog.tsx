@@ -74,60 +74,60 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-white mb-2">Activity Log</h2>
-        <p className="text-slate-300">Track all workflow executions and their outcomes</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Activity Log</h2>
+        <p className="text-gray-600">Track all workflow executions and their outcomes</p>
       </div>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-white border-slate-200 shadow-lg">
+        <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-slate-900">{summary.total}</div>
-            <div className="text-sm text-slate-600">Total</div>
+            <div className="text-2xl font-bold text-gray-900">{summary.total}</div>
+            <div className="text-sm text-gray-500">Total</div>
           </CardContent>
         </Card>
-        <Card className="bg-white border-slate-200 shadow-lg">
+        <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">{summary.running}</div>
-            <div className="text-sm text-slate-600">Running</div>
+            <div className="text-sm text-gray-500">Running</div>
           </CardContent>
         </Card>
-        <Card className="bg-white border-slate-200 shadow-lg">
+        <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-green-600">{summary.successful}</div>
-            <div className="text-sm text-slate-600">Successful</div>
+            <div className="text-sm text-gray-500">Successful</div>
           </CardContent>
         </Card>
-        <Card className="bg-white border-slate-200 shadow-lg">
+        <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-red-600">{summary.failed}</div>
-            <div className="text-sm text-slate-600">Failed</div>
+            <div className="text-sm text-gray-500">Failed</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card className="bg-white border-slate-200 shadow-lg">
+      <Card>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Search workflows..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-white border-slate-300 text-slate-900"
+                  className="pl-10"
                 />
               </div>
             </div>
             <div className="sm:w-48">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="bg-white border-slate-300 text-slate-900">
+                <SelectTrigger>
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-slate-300">
+                <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="running">Running</SelectItem>
                   <SelectItem value="success">Successful</SelectItem>
@@ -140,19 +140,19 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
       </Card>
 
       {/* Execution List */}
-      <Card className="bg-white border-slate-200 shadow-lg">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-slate-900">Recent Executions</CardTitle>
-          <CardDescription className="text-slate-600">
+          <CardTitle>Recent Executions</CardTitle>
+          <CardDescription>
             {filteredExecutions.length} execution{filteredExecutions.length !== 1 ? 's' : ''} found
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {filteredExecutions.length === 0 ? (
             <div className="text-center py-12">
-              <Clock className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">No Executions Found</h3>
-              <p className="text-slate-600">
+              <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Executions Found</h3>
+              <p className="text-gray-500">
                 {searchTerm || statusFilter !== 'all' 
                   ? 'Try adjusting your search or filter criteria' 
                   : 'Workflow executions will appear here once you start running workflows'
@@ -160,16 +160,16 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-200">
+            <div className="divide-y">
               {filteredExecutions.map((execution) => (
                 <Collapsible key={execution.id}>
-                  <div className="p-4 hover:bg-slate-50 transition-colors">
+                  <div className="p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         {getStatusIcon(execution.status)}
                         <div>
-                          <div className="font-medium text-slate-900">{execution.workflowName}</div>
-                          <div className="text-sm text-slate-600">
+                          <div className="font-medium text-gray-900">{execution.workflowName}</div>
+                          <div className="text-sm text-gray-500">
                             Started: {execution.startTime.toLocaleString()}
                           </div>
                         </div>
@@ -177,11 +177,11 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
                       
                       <div className="flex items-center space-x-4">
                         <div className="text-right hidden sm:block">
-                          <div className="text-sm font-medium text-slate-900">
+                          <div className="text-sm font-medium">
                             Duration: {formatDuration(execution.duration)}
                           </div>
                           {execution.endTime && (
-                            <div className="text-xs text-slate-600">
+                            <div className="text-xs text-gray-500">
                               Ended: {execution.endTime.toLocaleString()}
                             </div>
                           )}
@@ -196,7 +196,6 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
                             onClick={() => setExpandedExecution(
                               expandedExecution === execution.id ? null : execution.id
                             )}
-                            className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                           >
                             {expandedExecution === execution.id ? (
                               <ChevronUp className="h-4 w-4" />
@@ -210,48 +209,48 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
                   </div>
                   
                   <CollapsibleContent>
-                    <div className="px-4 pb-4 bg-slate-50">
+                    <div className="px-4 pb-4 bg-gray-50">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <h4 className="font-medium text-slate-900 mb-2">Execution Details</h4>
+                          <h4 className="font-medium text-gray-900 mb-2">Execution Details</h4>
                           <dl className="space-y-1">
                             <div className="flex justify-between">
-                              <dt className="text-slate-600">Execution ID:</dt>
-                              <dd className="font-mono text-xs text-slate-800">{execution.id}</dd>
+                              <dt className="text-gray-500">Execution ID:</dt>
+                              <dd className="font-mono text-xs">{execution.id}</dd>
                             </div>
                             <div className="flex justify-between">
-                              <dt className="text-slate-600">Workflow ID:</dt>
-                              <dd className="font-mono text-xs text-slate-800">{execution.workflowId}</dd>
+                              <dt className="text-gray-500">Workflow ID:</dt>
+                              <dd className="font-mono text-xs">{execution.workflowId}</dd>
                             </div>
                             <div className="flex justify-between">
-                              <dt className="text-slate-600">Status:</dt>
-                              <dd className="text-slate-800">{execution.status}</dd>
+                              <dt className="text-gray-500">Status:</dt>
+                              <dd>{execution.status}</dd>
                             </div>
                             <div className="flex justify-between">
-                              <dt className="text-slate-600">Duration:</dt>
-                              <dd className="text-slate-800">{formatDuration(execution.duration)}</dd>
+                              <dt className="text-gray-500">Duration:</dt>
+                              <dd>{formatDuration(execution.duration)}</dd>
                             </div>
                           </dl>
                         </div>
                         
                         <div>
-                          <h4 className="font-medium text-slate-900 mb-2">
+                          <h4 className="font-medium text-gray-900 mb-2">
                             {execution.status === 'failed' ? 'Error Details' : 'Result'}
                           </h4>
-                          <div className="bg-white p-3 rounded border border-slate-200 max-h-32 overflow-y-auto">
+                          <div className="bg-white p-3 rounded border max-h-32 overflow-y-auto">
                             {execution.status === 'failed' && execution.error ? (
                               <pre className="text-red-600 text-xs whitespace-pre-wrap">
                                 {execution.error}
                               </pre>
                             ) : execution.result ? (
-                              <pre className="text-slate-900 text-xs whitespace-pre-wrap">
+                              <pre className="text-gray-900 text-xs whitespace-pre-wrap">
                                 {typeof execution.result === 'string' 
                                   ? execution.result 
                                   : JSON.stringify(execution.result, null, 2)
                                 }
                               </pre>
                             ) : (
-                              <span className="text-slate-600 text-xs">No additional details</span>
+                              <span className="text-gray-500 text-xs">No additional details</span>
                             )}
                           </div>
                         </div>
