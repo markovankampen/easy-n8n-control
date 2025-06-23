@@ -43,6 +43,7 @@ const Index = () => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'control' | 'data' | 'activity'>('control');
   const [loading, setLoading] = useState(true);
+  const [runningWorkflows, setRunningWorkflows] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -84,6 +85,9 @@ const Index = () => {
       return;
     }
 
+    // Set workflow as running in local state only
+    setRunningWorkflows(prev => new Set(prev).add(workflowId));
+
     // Create execution record
     const execution: WorkflowExecution = {
       id: `exec-${Date.now()}`,
@@ -94,15 +98,8 @@ const Index = () => {
     };
 
     try {
-      // Update workflow status locally
-      const updatedWorkflows = workflows.map(w => 
-        w.id === workflowId ? { ...w, status: 'running' as const } : w
-      );
-      setWorkflows(updatedWorkflows);
-      
       // Add execution to local list
-      const updatedExecutions = [execution, ...executions];
-      setExecutions(updatedExecutions);
+      setExecutions(prev => [execution, ...prev]);
       
       // Save execution to database
       await DatabaseService.createExecution(execution);
@@ -145,8 +142,17 @@ const Index = () => {
       // Update execution in database
       await DatabaseService.updateExecution(execution);
       
-      // Reload data to get updated statistics
-      await loadDashboardData();
+      // Update local executions list
+      setExecutions(prev => 
+        prev.map(exec => exec.id === execution.id ? execution : exec)
+      );
+      
+      // Reload data to get updated statistics without affecting UI state
+      const [workflowsData] = await Promise.all([
+        DatabaseService.getWorkflows()
+      ]);
+      
+      setWorkflows(workflowsData);
 
       toast({
         title: execution.status === 'success' ? "Workflow Completed" : "Workflow Failed",
@@ -156,19 +162,27 @@ const Index = () => {
         variant: execution.status === 'success' ? "default" : "destructive"
       });
 
-      // Reset status to idle after 3 seconds
+      // Remove from running set after a brief delay
       setTimeout(() => {
-        const resetWorkflows = workflows.map(w => 
-          w.id === workflowId ? { ...w, status: 'idle' as const } : w
-        );
-        setWorkflows(resetWorkflows);
-      }, 3000);
+        setRunningWorkflows(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(workflowId);
+          return newSet;
+        });
+      }, 1000);
     } catch (error) {
       console.error('Error completing workflow:', error);
       toast({
         title: "Error",
         description: "Failed to update workflow execution status.",
         variant: "destructive"
+      });
+      
+      // Remove from running set even on error
+      setRunningWorkflows(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(workflowId);
+        return newSet;
       });
     }
   };
@@ -199,6 +213,12 @@ const Index = () => {
     }
   };
 
+  // Create enhanced workflows with running status
+  const enhancedWorkflows = workflows.map(workflow => ({
+    ...workflow,
+    status: runningWorkflows.has(workflow.id) ? 'running' as const : 'idle' as const
+  }));
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -227,7 +247,7 @@ const Index = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <StatusDisplay workflows={workflows} />
+              <StatusDisplay workflows={enhancedWorkflows} />
               <Button
                 variant="outline"
                 size="sm"
@@ -287,14 +307,14 @@ const Index = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {selectedTab === 'control' && (
           <WorkflowPanel
-            workflows={workflows}
+            workflows={enhancedWorkflows}
             onTriggerWorkflow={handleWorkflowTrigger}
           />
         )}
         
         {selectedTab === 'data' && (
           <DataVisualization
-            workflows={workflows}
+            workflows={enhancedWorkflows}
             executions={executions}
           />
         )}
