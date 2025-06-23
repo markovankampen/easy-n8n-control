@@ -30,6 +30,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null);
   const [testingWebhook, setTestingWebhook] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, 'success' | 'failed'>>({});
+  const [activeTab, setActiveTab] = useState<string>('workflows');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -60,6 +61,8 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
       requiresInput: workflow.requiresInput,
       inputSchema: workflow.inputSchema ? JSON.stringify(workflow.inputSchema, null, 2) : ''
     });
+    // Switch to the create/edit tab when editing
+    setActiveTab('create');
   };
 
   const handleSaveWorkflow = () => {
@@ -111,6 +114,9 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
       title: editingWorkflow ? "Workflow Updated" : "Workflow Created",
       description: `${workflowData.name} has been ${editingWorkflow ? 'updated' : 'created'} successfully.`
     });
+
+    // Switch back to workflows tab after saving
+    setActiveTab('workflows');
   };
 
   const handleDeleteWorkflow = (workflowId: string) => {
@@ -181,14 +187,24 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="workflows" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="workflows">Manage Workflows</TabsTrigger>
-            <TabsTrigger value="create">Create/Edit Workflow</TabsTrigger>
+            <TabsTrigger value="create">
+              {editingWorkflow ? 'Edit Workflow' : 'Create Workflow'}
+            </TabsTrigger>
             <TabsTrigger value="help">Setup Guide</TabsTrigger>
           </TabsList>
 
           <TabsContent value="workflows" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Your Workflows</h3>
+              <Button onClick={() => { resetForm(); setActiveTab('create'); }}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create New Workflow
+              </Button>
+            </div>
+            
             <div className="space-y-4">
               {workflows.map((workflow) => (
                 <Card key={workflow.id}>
@@ -217,16 +233,19 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                           variant="outline"
                           size="sm"
                           onClick={() => handleEditWorkflow(workflow)}
+                          className="flex items-center space-x-1"
                         >
                           <Edit className="h-4 w-4" />
+                          <span>Edit</span>
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleDeleteWorkflow(workflow.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 flex items-center space-x-1"
                         >
                           <Trash2 className="h-4 w-4" />
+                          <span>Delete</span>
                         </Button>
                       </div>
                     </div>
@@ -277,7 +296,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                   <Plus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No Workflows Yet</h3>
                   <p className="text-gray-500 mb-4">Create your first workflow to get started</p>
-                  <Button onClick={() => resetForm()}>
+                  <Button onClick={() => { resetForm(); setActiveTab('create'); }}>
                     <Plus className="h-4 w-4 mr-2" />
                     Create Workflow
                   </Button>
@@ -355,7 +374,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                 )}
 
                 <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={resetForm}>
+                  <Button variant="outline" onClick={() => { resetForm(); setActiveTab('workflows'); }}>
                     Cancel
                   </Button>
                   <Button onClick={handleSaveWorkflow}>
