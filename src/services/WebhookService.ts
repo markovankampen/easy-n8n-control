@@ -1,4 +1,3 @@
-
 export class WebhookService {
   static async triggerWorkflow(webhookUrl: string, params?: any): Promise<any> {
     if (!webhookUrl) {
@@ -14,7 +13,11 @@ export class WebhookService {
           'Content-Type': 'application/json',
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impqdnl5cmx4bGxqcnl2YWVnZWd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2ODI5MDIsImV4cCI6MjA2NjI1ODkwMn0.HOdET8-Xyqo5J1nWB6l2Leg-AT2R2nLK56eZUErCxa8`
         },
-        body: JSON.stringify({ webhookUrl, params })
+        body: JSON.stringify({ 
+          webhookUrl, 
+          params,
+          isComplexWorkflow: true // Flag for complex workflow handling
+        })
       });
 
       if (!response.ok) {
@@ -82,15 +85,15 @@ export class WebhookService {
   static formatWebhookError(error: any): string {
     if (error instanceof Error) {
       if (error.message.includes('not registered')) {
-        return 'N8N webhook not ready. Please activate your workflow or click "Test workflow" in N8N first.';
+        return 'N8N webhook not ready. For complex workflows: 1) Activate the workflow, 2) Execute it once manually, 3) Then try triggering from dashboard.';
       }
       
       if (error.message.includes('not found')) {
-        return 'Webhook not found. Please verify the URL is correct and the N8N workflow is active.';
+        return 'Webhook not found. For complex workflows, ensure the workflow is both activated AND has been executed at least once.';
       }
       
       if (error.message.includes('500')) {
-        return 'N8N server error: There may be an issue with your workflow execution.';
+        return 'N8N server error: Complex workflows may have execution timeouts or node configuration issues.';
       }
       
       return error.message;

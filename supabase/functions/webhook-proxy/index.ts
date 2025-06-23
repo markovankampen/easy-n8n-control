@@ -23,7 +23,7 @@ serve(async (req) => {
       );
     }
 
-    const { webhookUrl, params } = await req.json();
+    const { webhookUrl, params, isComplexWorkflow } = await req.json();
 
     if (!webhookUrl) {
       return new Response(
@@ -37,66 +37,127 @@ serve(async (req) => {
 
     console.log('Proxying webhook request to:', webhookUrl);
     console.log('With params:', params);
+    console.log('Complex workflow mode:', isComplexWorkflow);
 
-    // First try POST request
-    let response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(params || {}),
-    });
+    // For complex workflows, try different strategies
+    let response;
+    let lastError;
 
-    // If POST fails with 404, try GET as fallback
-    if (!response.ok && response.status === 404) {
-      console.log('POST failed with 404, trying GET request');
-      
-      // Convert params to URL search params for GET request
-      const urlParams = new URLSearchParams();
-      if (params) {
-        Object.entries(params).forEach(([key, value]) => {
-          urlParams.append(key, String(value));
-        });
-      }
-      
-      const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
-      
-      response = await fetch(getUrl, {
-        method: 'GET',
+    // Strategy 1: Standard POST request
+    try {
+      console.log('Trying POST request...');
+      response = await fetch(webhookUrl, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'User-Agent': 'N8N-Dashboard-Trigger/1.0',
         },
+        body: JSON.stringify(params || {}),
       });
+
+      if (response.ok) {
+        console.log('POST request successful');
+      } else {
+        throw new Error(`POST failed with ${response.status}`);
+      }
+    } catch (error) {
+      console.log('POST request failed:', error.message);
+      lastError = error;
+      
+      // Strategy 2: GET request as fallback
+      try {
+        console.log('Trying GET request as fallback...');
+        const urlParams = new URLSearchParams();
+        if (params) {
+          Object.entries(params).forEach(([key, value]) => {
+            urlParams.append(key, String(value));
+          });
+        }
+        
+        const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
+        
+        response = await fetch(getUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'N8N-Dashboard-Trigger/1.0',
+          },
+        });
+
+        if (response.ok) {
+          console.log('GET request successful');
+        } else {
+          throw new Error(`GET failed with ${response.status}`);
+        }
+      } catch (getError) {
+        console.log('GET request also failed:', getError.message);
+        
+        // Strategy 3: For complex workflows, try with minimal payload
+        if (isComplexWorkflow) {
+          try {
+            console.log('Trying minimal payload for complex workflow...');
+            response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'N8N-Dashboard-Trigger/1.0',
+              },
+              body: JSON.stringify({ trigger: true, timestamp: Date.now() }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Minimal payload failed with ${response.status}`);
+            }
+            console.log('Minimal payload request successful');
+          } catch (minimalError) {
+            console.log('All strategies failed');
+            response = null;
+            lastError = minimalError;
+          }
+        } else {
+          response = null;
+        }
+      }
     }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('N8N webhook failed:', { 
-        status: response.status, 
-        statusText: response.statusText, 
-        body: errorText 
+    if (!response || !response.ok) {
+      const errorText = response ? await response.text() : 'No response received';
+      const status = response ? response.status : 500;
+      
+      console.error('N8N webhook failed after all strategies:', { 
+        status, 
+        statusText: response?.statusText || 'Unknown', 
+        body: errorText,
+        lastError: lastError?.message
       });
       
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      let errorMessage = `HTTP ${status}: ${response?.statusText || 'Unknown error'}`;
       
-      if (response.status === 404) {
+      if (status === 404) {
         if (errorText.includes('not registered')) {
-          errorMessage = 'N8N webhook not registered. Please activate your workflow or click "Test workflow" in N8N first.';
+          errorMessage = isComplexWorkflow 
+            ? 'Complex N8N workflow not registered. Please: 1) Activate the workflow, 2) Execute it manually once, 3) Then try again.'
+            : 'N8N webhook not registered. Please activate your workflow or click "Test workflow" in N8N first.';
         } else {
-          errorMessage = 'Webhook not found. Please check the URL and ensure your N8N workflow is activated.';
+          errorMessage = isComplexWorkflow
+            ? 'Complex workflow webhook not found. Ensure workflow is activated and has been executed at least once.'
+            : 'Webhook not found. Please check the URL and ensure your N8N workflow is activated.';
         }
-      } else if (response.status >= 500) {
-        errorMessage = 'N8N server error. Please check your workflow configuration.';
+      } else if (status >= 500) {
+        errorMessage = isComplexWorkflow
+          ? 'N8N server error. Complex workflows may have timeout or configuration issues. Check N8N logs.'
+          : 'N8N server error. Please check your workflow configuration.';
       }
       
       return new Response(
         JSON.stringify({ 
           error: errorMessage,
           details: errorText,
-          status: response.status
+          status: status,
+          isComplexWorkflow
         }),
         { 
-          status: response.status, 
+          status: status, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
