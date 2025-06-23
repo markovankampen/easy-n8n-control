@@ -43,6 +43,7 @@ const Index = () => {
   const [selectedTab, setSelectedTab] = useState<'control' | 'data' | 'activity'>('control');
   const [loading, setLoading] = useState(true);
   const [runningWorkflows, setRunningWorkflows] = useState<Set<string>>(new Set());
+  const [workflowOrder, setWorkflowOrder] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -56,6 +57,19 @@ const Index = () => {
         DatabaseService.getWorkflows(),
         DatabaseService.getExecutions()
       ]);
+      
+      // Establish initial order if not set, or maintain existing order for known workflows
+      if (workflowOrder.length === 0) {
+        setWorkflowOrder(workflowsData.map(w => w.id));
+      } else {
+        // Add any new workflows to the end while preserving existing order
+        const newWorkflowIds = workflowsData
+          .map(w => w.id)
+          .filter(id => !workflowOrder.includes(id));
+        if (newWorkflowIds.length > 0) {
+          setWorkflowOrder(prev => [...prev, ...newWorkflowIds]);
+        }
+      }
       
       setWorkflows(workflowsData);
       setExecutions(executionsData);
@@ -158,7 +172,7 @@ const Index = () => {
         prev.map(exec => exec.id === execution.id ? execution : exec)
       );
       
-      // Reload workflows data to get updated statistics
+      // Reload workflows data to get updated statistics while preserving order
       console.log('Reloading workflow statistics after execution');
       const [workflowsData] = await Promise.all([
         DatabaseService.getWorkflows()
@@ -225,8 +239,32 @@ const Index = () => {
     }
   };
 
-  // Create enhanced workflows with running status
-  const enhancedWorkflows = workflows.map(workflow => ({
+  // Create enhanced workflows with running status and maintain stable order
+  const getSortedWorkflows = () => {
+    if (workflowOrder.length === 0) return workflows;
+    
+    // Sort workflows according to the established order
+    const sortedWorkflows = [...workflows].sort((a, b) => {
+      const indexA = workflowOrder.indexOf(a.id);
+      const indexB = workflowOrder.indexOf(b.id);
+      
+      // If both workflows are in the order array, sort by their position
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      
+      // If only one is in the order array, prioritize it
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      
+      // If neither is in the order array, maintain original order
+      return 0;
+    });
+    
+    return sortedWorkflows;
+  };
+
+  const enhancedWorkflows = getSortedWorkflows().map(workflow => ({
     ...workflow,
     status: runningWorkflows.has(workflow.id) ? 'running' as const : 'idle' as const
   }));
