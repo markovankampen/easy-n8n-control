@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { WorkflowPanel } from '../components/WorkflowPanel';
 import { StatusDisplay } from '../components/StatusDisplay';
@@ -74,7 +73,10 @@ const Index = () => {
 
   const handleWorkflowTrigger = async (workflowId: string, params?: any) => {
     const workflow = workflows.find(w => w.id === workflowId);
-    if (!workflow) return;
+    if (!workflow) {
+      console.error('Workflow not found:', workflowId);
+      return;
+    }
 
     if (!workflow.webhookUrl) {
       toast({
@@ -85,13 +87,16 @@ const Index = () => {
       return;
     }
 
+    console.log('Starting workflow execution:', { workflowId, workflowName: workflow.name });
+
     // Set workflow as running in local state only
     setRunningWorkflows(prev => new Set(prev).add(workflowId));
 
-    // Create execution record
+    // Create execution record with unique ID
+    const executionId = `exec-${workflowId}-${Date.now()}`;
     const execution: WorkflowExecution = {
-      id: `exec-${Date.now()}`,
-      workflowId,
+      id: executionId,
+      workflowId: workflowId,
       workflowName: workflow.name,
       status: 'running',
       startTime: new Date()
@@ -109,6 +114,8 @@ const Index = () => {
         description: `${workflow.name} is now running...`
       });
 
+      console.log('Executing workflow:', { workflowId, executionId, webhookUrl: workflow.webhookUrl });
+
       // Execute workflow
       const result = await WebhookService.triggerWorkflow(workflow.webhookUrl, params);
       
@@ -121,9 +128,11 @@ const Index = () => {
         result
       };
       
+      console.log('Workflow completed successfully:', { workflowId, executionId });
       await handleWorkflowComplete(workflowId, completedExecution);
       
     } catch (error) {
+      console.error('Workflow failed:', { workflowId, executionId, error });
       // Update execution with failure
       const failedExecution = {
         ...execution,
@@ -139,6 +148,8 @@ const Index = () => {
 
   const handleWorkflowComplete = async (workflowId: string, execution: WorkflowExecution) => {
     try {
+      console.log('Updating execution in database:', { executionId: execution.id, workflowId, status: execution.status });
+      
       // Update execution in database
       await DatabaseService.updateExecution(execution);
       
@@ -147,7 +158,8 @@ const Index = () => {
         prev.map(exec => exec.id === execution.id ? execution : exec)
       );
       
-      // Reload data to get updated statistics without affecting UI state
+      // Reload workflows data to get updated statistics
+      console.log('Reloading workflow statistics after execution');
       const [workflowsData] = await Promise.all([
         DatabaseService.getWorkflows()
       ]);

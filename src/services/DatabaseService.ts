@@ -32,6 +32,12 @@ export class DatabaseService {
   }
 
   static async createExecution(execution: WorkflowExecution): Promise<void> {
+    console.log('Creating execution in database:', { 
+      id: execution.id, 
+      workflowId: execution.workflowId, 
+      workflowName: execution.workflowName 
+    });
+
     const { error } = await supabase
       .from('workflow_executions')
       .insert({
@@ -50,9 +56,17 @@ export class DatabaseService {
       console.error('Error creating execution:', error);
       throw error;
     }
+
+    console.log('Execution created successfully in database');
   }
 
   static async updateExecution(execution: WorkflowExecution): Promise<void> {
+    console.log('Updating execution in database:', { 
+      id: execution.id, 
+      workflowId: execution.workflowId, 
+      status: execution.status 
+    });
+
     const { error } = await supabase
       .from('workflow_executions')
       .update({
@@ -68,6 +82,8 @@ export class DatabaseService {
       console.error('Error updating execution:', error);
       throw error;
     }
+
+    console.log('Execution updated successfully in database');
   }
 
   static async updateWorkflowWebhookUrl(workflowId: string, webhookUrl: string): Promise<void> {
