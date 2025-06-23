@@ -1,4 +1,4 @@
-import { Workflow, WorkflowExecution } from '../types/workflow';
+import { Workflow, WorkflowExecution } from '../pages/Index';
 
 const STORAGE_KEYS = {
   WORKFLOWS: 'n8n_dashboard_workflows',

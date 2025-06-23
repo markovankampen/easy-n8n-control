@@ -1,5 +1,6 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { Workflow, WorkflowExecution } from "../types/workflow";
+import { Workflow, WorkflowExecution } from "../pages/Index";
 
 export class DatabaseService {
   static async getWorkflows(): Promise<Workflow[]> {
