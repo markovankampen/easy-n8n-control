@@ -6,7 +6,7 @@ import { DataVisualization } from '../components/DataVisualization';
 import { ActivityLog } from '../components/ActivityLog';
 import { ConfigurationModal } from '../components/ConfigurationModal';
 import { WebhookService } from '../services/WebhookService';
-import { StorageService } from '../services/StorageService';
+import { DatabaseService } from '../services/DatabaseService';
 import { Settings, Activity, BarChart3, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -42,62 +42,32 @@ const Index = () => {
   const [executions, setExecutions] = useState<WorkflowExecution[]>([]);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'control' | 'data' | 'activity'>('control');
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     loadDashboardData();
   }, []);
 
-  const loadDashboardData = () => {
-    const savedWorkflows = StorageService.getWorkflows();
-    const savedExecutions = StorageService.getExecutions();
-    
-    setWorkflows(savedWorkflows);
-    setExecutions(savedExecutions);
-
-    // Initialize default workflows if none exist
-    if (savedWorkflows.length === 0) {
-      const defaultWorkflows: Workflow[] = [
-        {
-          id: 'wf-1',
-          name: 'Generate Report',
-          description: 'Generate daily business report',
-          webhookUrl: '',
-          status: 'idle',
-          executionCount: 0,
-          successRate: 100,
-          avgExecutionTime: 0,
-          requiresInput: false
-        },
-        {
-          id: 'wf-2',
-          name: 'Send Notifications',
-          description: 'Send email notifications to team',
-          webhookUrl: '',
-          status: 'idle',
-          executionCount: 0,
-          successRate: 100,
-          avgExecutionTime: 0,
-          requiresInput: true,
-          inputSchema: {
-            message: { type: 'text', label: 'Message', required: true },
-            recipients: { type: 'text', label: 'Recipients (comma-separated)', required: true }
-          }
-        },
-        {
-          id: 'wf-3',
-          name: 'Data Sync',
-          description: 'Synchronize data between systems',
-          webhookUrl: '',
-          status: 'idle',
-          executionCount: 0,
-          successRate: 100,
-          avgExecutionTime: 0,
-          requiresInput: false
-        }
-      ];
-      setWorkflows(defaultWorkflows);
-      StorageService.saveWorkflows(defaultWorkflows);
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [workflowsData, executionsData] = await Promise.all([
+        DatabaseService.getWorkflows(),
+        DatabaseService.getExecutions()
+      ]);
+      
+      setWorkflows(workflowsData);
+      setExecutions(executionsData);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      toast({
+        title: "Error Loading Data",
+        description: "Failed to load workflow data from database.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -123,26 +93,26 @@ const Index = () => {
       startTime: new Date()
     };
 
-    // Update workflow status
-    const updatedWorkflows = workflows.map(w => 
-      w.id === workflowId ? { ...w, status: 'running' as const } : w
-    );
-    setWorkflows(updatedWorkflows);
-    
-    // Add execution to list
-    const updatedExecutions = [execution, ...executions];
-    setExecutions(updatedExecutions);
-    
-    // Save to storage
-    StorageService.saveWorkflows(updatedWorkflows);
-    StorageService.saveExecutions(updatedExecutions);
-
-    toast({
-      title: "Workflow Started",
-      description: `${workflow.name} is now running...`
-    });
-
     try {
+      // Update workflow status locally
+      const updatedWorkflows = workflows.map(w => 
+        w.id === workflowId ? { ...w, status: 'running' as const } : w
+      );
+      setWorkflows(updatedWorkflows);
+      
+      // Add execution to local list
+      const updatedExecutions = [execution, ...executions];
+      setExecutions(updatedExecutions);
+      
+      // Save execution to database
+      await DatabaseService.createExecution(execution);
+
+      toast({
+        title: "Workflow Started",
+        description: `${workflow.name} is now running...`
+      });
+
+      // Execute workflow
       const result = await WebhookService.triggerWorkflow(workflow.webhookUrl, params);
       
       // Update execution with success
@@ -154,7 +124,7 @@ const Index = () => {
         result
       };
       
-      handleWorkflowComplete(workflowId, completedExecution);
+      await handleWorkflowComplete(workflowId, completedExecution);
       
     } catch (error) {
       // Update execution with failure
@@ -166,66 +136,79 @@ const Index = () => {
         error: error instanceof Error ? error.message : 'Unknown error'
       };
       
-      handleWorkflowComplete(workflowId, failedExecution);
+      await handleWorkflowComplete(workflowId, failedExecution);
     }
   };
 
-  const handleWorkflowComplete = (workflowId: string, execution: WorkflowExecution) => {
-    const workflow = workflows.find(w => w.id === workflowId);
-    if (!workflow) return;
+  const handleWorkflowComplete = async (workflowId: string, execution: WorkflowExecution) => {
+    try {
+      // Update execution in database
+      await DatabaseService.updateExecution(execution);
+      
+      // Reload data to get updated statistics
+      await loadDashboardData();
 
-    // Update workflow statistics
-    const newExecutionCount = workflow.executionCount + 1;
-    const isSuccess = execution.status === 'success';
-    const newSuccessCount = Math.round(workflow.successRate * workflow.executionCount / 100) + (isSuccess ? 1 : 0);
-    const newSuccessRate = Math.round((newSuccessCount / newExecutionCount) * 100);
-    const newAvgTime = workflow.avgExecutionTime === 0 ? 
-      (execution.duration || 0) :
-      Math.round((workflow.avgExecutionTime * workflow.executionCount + (execution.duration || 0)) / newExecutionCount);
+      toast({
+        title: execution.status === 'success' ? "Workflow Completed" : "Workflow Failed",
+        description: execution.status === 'success' ? 
+          `${execution.workflowName} completed successfully` : 
+          `${execution.workflowName} failed: ${execution.error}`,
+        variant: execution.status === 'success' ? "default" : "destructive"
+      });
 
-    const updatedWorkflows = workflows.map(w => 
-      w.id === workflowId ? {
-        ...w,
-        status: (execution.status === 'success' ? 'success' : 'failed') as Workflow['status'],
-        lastRun: execution.endTime,
-        executionCount: newExecutionCount,
-        successRate: newSuccessRate,
-        avgExecutionTime: newAvgTime
-      } : w
-    );
-
-    const updatedExecutions = executions.map(e => 
-      e.id === execution.id ? execution : e
-    );
-
-    setWorkflows(updatedWorkflows);
-    setExecutions(updatedExecutions);
-    
-    StorageService.saveWorkflows(updatedWorkflows);
-    StorageService.saveExecutions(updatedExecutions);
-
-    toast({
-      title: execution.status === 'success' ? "Workflow Completed" : "Workflow Failed",
-      description: execution.status === 'success' ? 
-        `${workflow.name} completed successfully` : 
-        `${workflow.name} failed: ${execution.error}`,
-      variant: execution.status === 'success' ? "default" : "destructive"
-    });
-
-    // Reset status to idle after 3 seconds
-    setTimeout(() => {
-      const resetWorkflows = workflows.map(w => 
-        w.id === workflowId ? { ...w, status: 'idle' as const } : w
-      );
-      setWorkflows(resetWorkflows);
-      StorageService.saveWorkflows(resetWorkflows);
-    }, 3000);
+      // Reset status to idle after 3 seconds
+      setTimeout(() => {
+        const resetWorkflows = workflows.map(w => 
+          w.id === workflowId ? { ...w, status: 'idle' as const } : w
+        );
+        setWorkflows(resetWorkflows);
+      }, 3000);
+    } catch (error) {
+      console.error('Error completing workflow:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update workflow execution status.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleWorkflowUpdate = (updatedWorkflows: Workflow[]) => {
-    setWorkflows(updatedWorkflows);
-    StorageService.saveWorkflows(updatedWorkflows);
+  const handleWorkflowUpdate = async (updatedWorkflows: Workflow[]) => {
+    // Update webhook URLs in database
+    try {
+      for (const workflow of updatedWorkflows) {
+        const originalWorkflow = workflows.find(w => w.id === workflow.id);
+        if (originalWorkflow && originalWorkflow.webhookUrl !== workflow.webhookUrl) {
+          await DatabaseService.updateWorkflowWebhookUrl(workflow.id, workflow.webhookUrl);
+        }
+      }
+      
+      setWorkflows(updatedWorkflows);
+      
+      toast({
+        title: "Configuration Updated",
+        description: "Workflow configurations have been saved.",
+      });
+    } catch (error) {
+      console.error('Error updating workflows:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save workflow configurations.",
+        variant: "destructive"
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">

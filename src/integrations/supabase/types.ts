@@ -9,13 +9,110 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      workflow_executions: {
+        Row: {
+          created_at: string | null
+          duration: number | null
+          end_time: string | null
+          error: string | null
+          id: string
+          result: Json | null
+          start_time: string
+          status: string
+          workflow_id: string | null
+          workflow_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration?: number | null
+          end_time?: string | null
+          error?: string | null
+          id: string
+          result?: Json | null
+          start_time: string
+          status: string
+          workflow_id?: string | null
+          workflow_name: string
+        }
+        Update: {
+          created_at?: string | null
+          duration?: number | null
+          end_time?: string | null
+          error?: string | null
+          id?: string
+          result?: Json | null
+          start_time?: string
+          status?: string
+          workflow_id?: string | null
+          workflow_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_executions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflows: {
+        Row: {
+          avg_execution_time: number | null
+          created_at: string | null
+          description: string | null
+          execution_count: number | null
+          id: string
+          input_schema: Json | null
+          last_run: string | null
+          name: string
+          requires_input: boolean | null
+          success_count: number | null
+          success_rate: number | null
+          updated_at: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          avg_execution_time?: number | null
+          created_at?: string | null
+          description?: string | null
+          execution_count?: number | null
+          id: string
+          input_schema?: Json | null
+          last_run?: string | null
+          name: string
+          requires_input?: boolean | null
+          success_count?: number | null
+          success_rate?: number | null
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          avg_execution_time?: number | null
+          created_at?: string | null
+          description?: string | null
+          execution_count?: number | null
+          id?: string
+          input_schema?: Json | null
+          last_run?: string | null
+          name?: string
+          requires_input?: boolean | null
+          success_count?: number | null
+          success_rate?: number | null
+          updated_at?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_workflow_stats: {
+        Args: { workflow_id_param: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
