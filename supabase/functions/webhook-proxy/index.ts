@@ -39,29 +39,26 @@ serve(async (req) => {
         body: JSON.stringify(params || {}),
       });
 
-      // If we get a 404 with specific message about POST not being registered, try GET
+      // If we get a 404, try GET request instead
       if (!response.ok && response.status === 404) {
-        const errorText = await response.text();
-        if (errorText.includes('not registered for POST requests')) {
-          console.log('POST not supported, trying GET request');
-          
-          // Convert params to URL search params for GET request
-          const urlParams = new URLSearchParams();
-          if (params) {
-            Object.entries(params).forEach(([key, value]) => {
-              urlParams.append(key, String(value));
-            });
-          }
-          
-          const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
-          
-          response = await fetch(getUrl, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+        console.log('POST failed with 404, trying GET request');
+        
+        // Convert params to URL search params for GET request
+        const urlParams = new URLSearchParams();
+        if (params) {
+          Object.entries(params).forEach(([key, value]) => {
+            urlParams.append(key, String(value));
           });
         }
+        
+        const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
+        
+        response = await fetch(getUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
       }
     } else if (method === 'GET') {
       // Handle GET request
@@ -83,12 +80,19 @@ serve(async (req) => {
     }
 
     if (!response.ok) {
-      const errorText = await response.text();
       console.error('Webhook request failed:', { 
         status: response.status, 
-        statusText: response.statusText,
-        errorText 
+        statusText: response.statusText
       });
+      
+      // Try to get error text, but handle the case where body might be empty
+      let errorText = '';
+      try {
+        errorText = await response.text();
+      } catch (err) {
+        console.log('Could not read error response body:', err);
+        errorText = 'No error details available';
+      }
       
       return new Response(
         JSON.stringify({ 
@@ -102,7 +106,25 @@ serve(async (req) => {
       );
     }
 
-    const result = await response.json();
+    // Try to parse JSON response, but handle cases where it might not be JSON
+    let result;
+    try {
+      const responseText = await response.text();
+      if (responseText) {
+        try {
+          result = JSON.parse(responseText);
+        } catch {
+          // If it's not JSON, return the text as a message
+          result = { message: responseText };
+        }
+      } else {
+        result = { message: 'Webhook executed successfully' };
+      }
+    } catch (err) {
+      console.error('Error reading response:', err);
+      result = { message: 'Webhook executed successfully' };
+    }
+
     console.log('Webhook response received:', result);
 
     return new Response(
