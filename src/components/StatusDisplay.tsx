@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Workflow } from '../pages/Index';
+import { Workflow } from '../types/workflow';
 import { CheckCircle, AlertCircle, Loader2, Clock } from 'lucide-react';
 
 interface StatusDisplayProps {

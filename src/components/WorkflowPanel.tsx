@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Workflow } from '../pages/Index';
+import { Workflow } from '../types/workflow';
 import { Play, Settings, AlertCircle, CheckCircle, Loader2, Clock } from 'lucide-react';
 
 interface WorkflowPanelProps {
