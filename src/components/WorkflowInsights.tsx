@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -429,7 +430,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
                         className="p-2 rounded-lg mb-2"
                         style={{ backgroundColor: `${card.color}20` }}
                       >
-                        <Icon className="h-5 w-5" style={{ color: card.color }} />
+                        <Icon className="h-5 w-5" color={card.color} />
                       </div>
                       {getTrendIcon(card.trend)}
                     </div>
@@ -598,7 +599,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
                         className="p-2 rounded-lg"
                         style={{ backgroundColor: `${summary.color}20` }}
                       >
-                        <Icon className="h-6 w-6" style={{ color: summary.color }} />
+                        <Icon className="h-6 w-6" color={summary.color} />
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900">{summary.title}</h3>
