@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { WorkflowPanel } from '../components/WorkflowPanel';
 import { StatusDisplay } from '../components/StatusDisplay';
@@ -373,42 +372,40 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center animate-bounce-in">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-400 border-t-transparent mx-auto mb-4 shadow-lg hover-glow"></div>
-          <p className="text-purple-200 font-semibold text-lg drop-shadow-lg glow-text">Loading dashboard...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <header className="bg-gradient-to-r from-slate-800 via-purple-800 to-slate-800 shadow-xl border-b border-slate-700">
+      <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4 group">
-              <div className="bg-gradient-to-br from-purple-600 to-indigo-600 p-3 rounded-xl shadow-lg card-hover floating">
-                <Zap className="h-6 w-6 text-white animate-pulse hover:animate-bounce" />
+            <div className="flex items-center space-x-4">
+              <div className="bg-blue-600 p-2 rounded-lg">
+                <Zap className="h-6 w-6 text-white" />
               </div>
-              <div className="hover:scale-105 transition-all duration-300">
-                <h1 className="text-xl font-bold text-purple-100 drop-shadow-lg hover:glow-text transition-all duration-300">N8N Workflow Dashboard</h1>
-                <p className="text-sm text-slate-300 drop-shadow hover:text-purple-200 transition-colors duration-300">Control and monitor your automation workflows</p>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">N8N Workflow Dashboard</h1>
+                <p className="text-sm text-gray-500">Control and monitor your automation workflows</p>
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="hover-scale animate-fade-in">
-                <StatusDisplay workflows={enhancedWorkflows} />
-              </div>
+              <StatusDisplay workflows={enhancedWorkflows} />
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsConfigOpen(true)}
-                className="flex items-center space-x-2 bg-slate-800/50 backdrop-blur-sm border-slate-600 text-purple-100 hover:bg-slate-700/50 button-hover shadow-lg"
+                className="flex items-center space-x-2"
               >
-                <Settings className="h-4 w-4 transition-transform duration-300 hover:rotate-45" />
+                <Settings className="h-4 w-4" />
                 <span>Configure</span>
               </Button>
             </div>
@@ -417,56 +414,52 @@ const Index = () => {
       </header>
 
       {/* Navigation Tabs */}
-      <div className="bg-gradient-to-r from-slate-800 via-purple-800 to-slate-800 border-b border-slate-700 shadow-lg">
+      <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8" aria-label="Tabs">
             <button
               onClick={() => setSelectedTab('control')}
               className={`${
                 selectedTab === 'control'
-                  ? 'border-purple-400 text-purple-200 bg-slate-800/30 backdrop-blur-sm animate-pulse'
-                  : 'border-transparent text-slate-300 hover:text-purple-200 hover:border-slate-500 hover:bg-slate-800/20'
-              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
-              style={{ animationDelay: '0.1s' }}
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
             >
-              <Zap className="h-4 w-4 transition-transform duration-300 hover:rotate-12 hover:scale-110" />
-              <span className="hover:rainbow-text transition-all duration-300">Workflow Control</span>
+              <Zap className="h-4 w-4" />
+              <span>Workflow Control</span>
             </button>
             <button
               onClick={() => setSelectedTab('data')}
               className={`${
                 selectedTab === 'data'
-                  ? 'border-green-400 text-green-200 bg-slate-800/30 backdrop-blur-sm animate-pulse'
-                  : 'border-transparent text-slate-300 hover:text-purple-200 hover:border-slate-500 hover:bg-slate-800/20'
-              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
-              style={{ animationDelay: '0.2s' }}
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
             >
-              <BarChart3 className="h-4 w-4 transition-transform duration-300 hover:rotate-12 hover:scale-110" />
-              <span className="hover:rainbow-text transition-all duration-300">Data & Analytics</span>
+              <BarChart3 className="h-4 w-4" />
+              <span>Data & Analytics</span>
             </button>
             <button
               onClick={() => setSelectedTab('activity')}
               className={`${
                 selectedTab === 'activity'
-                  ? 'border-blue-400 text-blue-200 bg-slate-800/30 backdrop-blur-sm animate-pulse'
-                  : 'border-transparent text-slate-300 hover:text-purple-200 hover:border-slate-500 hover:bg-slate-800/20'
-              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
-              style={{ animationDelay: '0.3s' }}
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
             >
-              <Activity className="h-4 w-4 transition-transform duration-300 hover:rotate-12 hover:scale-110" />
-              <span className="hover:rainbow-text transition-all duration-300">Activity Log</span>
+              <Activity className="h-4 w-4" />
+              <span>Activity Log</span>
             </button>
             <button
               onClick={() => setSelectedTab('insights')}
               className={`${
                 selectedTab === 'insights'
-                  ? 'border-orange-400 text-orange-200 bg-slate-800/30 backdrop-blur-sm animate-pulse'
-                  : 'border-transparent text-slate-300 hover:text-purple-200 hover:border-slate-500 hover:bg-slate-800/20'
-              } whitespace-nowrap py-4 px-4 border-b-3 font-semibold text-sm flex items-center space-x-2 rounded-t-lg card-hover shadow-lg animate-slide-up`}
-              style={{ animationDelay: '0.4s' }}
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
             >
-              <TrendingUp className="h-4 w-4 transition-transform duration-300 hover:rotate-12 hover:scale-110" />
-              <span className="hover:rainbow-text transition-all duration-300">Insights</span>
+              <TrendingUp className="h-4 w-4" />
+              <span>Insights</span>
             </button>
           </nav>
         </div>
@@ -474,48 +467,36 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="animate-fade-in">
-          {selectedTab === 'control' && (
-            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              <WorkflowPanel
-                workflows={enhancedWorkflows}
-                onTriggerWorkflow={handleWorkflowTrigger}
-              />
-            </div>
-          )}
-          
-          {selectedTab === 'data' && (
-            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              <DataVisualization
-                workflows={enhancedWorkflows}
-                executions={executions}
-              />
-            </div>
-          )}
-          
-          {selectedTab === 'activity' && (
-            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              <ActivityLog executions={executions} />
-            </div>
-          )}
-          
-          {selectedTab === 'insights' && (
-            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              <WorkflowInsights executions={executions} />
-            </div>
-          )}
-        </div>
+        {selectedTab === 'control' && (
+          <WorkflowPanel
+            workflows={enhancedWorkflows}
+            onTriggerWorkflow={handleWorkflowTrigger}
+          />
+        )}
+        
+        {selectedTab === 'data' && (
+          <DataVisualization
+            workflows={enhancedWorkflows}
+            executions={executions}
+          />
+        )}
+        
+        {selectedTab === 'activity' && (
+          <ActivityLog executions={executions} />
+        )}
+        
+        {selectedTab === 'insights' && (
+          <WorkflowInsights executions={executions} />
+        )}
       </main>
 
       {/* Configuration Modal */}
-      <div className="animate-bounce-in">
-        <ConfigurationModal
-          isOpen={isConfigOpen}
-          onClose={() => setIsConfigOpen(false)}
-          workflows={workflows}
-          onUpdateWorkflows={handleWorkflowUpdate}
-        />
-      </div>
+      <ConfigurationModal
+        isOpen={isConfigOpen}
+        onClose={() => setIsConfigOpen(false)}
+        workflows={workflows}
+        onUpdateWorkflows={handleWorkflowUpdate}
+      />
     </div>
   );
 };

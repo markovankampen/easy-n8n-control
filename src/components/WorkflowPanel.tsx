@@ -24,26 +24,26 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
   const getStatusIcon = (status: Workflow['status']) => {
     switch (status) {
       case 'running':
-        return <Loader2 className="h-5 w-5 text-blue-500 animate-spin hover:animate-pulse" />;
+        return <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />;
       case 'success':
-        return <CheckCircle className="h-5 w-5 text-green-500 hover:scale-110 hover:rotate-12 transition-all duration-300" />;
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'failed':
-        return <AlertCircle className="h-5 w-5 text-red-500 hover:scale-110 hover:rotate-12 transition-all duration-300" />;
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
       default:
-        return <Clock className="h-5 w-5 text-gray-400 hover:scale-110 hover:rotate-12 transition-all duration-300" />;
+        return <Clock className="h-5 w-5 text-gray-400" />;
     }
   };
 
   const getStatusColor = (status: Workflow['status']) => {
     switch (status) {
       case 'running':
-        return 'border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200';
+        return 'border-blue-200 bg-blue-50';
       case 'success':
-        return 'border-green-200 bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200';
+        return 'border-green-200 bg-green-50';
       case 'failed':
-        return 'border-red-200 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200';
+        return 'border-red-200 bg-red-50';
       default:
-        return 'border-gray-200 bg-gradient-to-br from-white to-gray-50 hover:from-gray-50 hover:to-gray-100';
+        return 'border-gray-200 bg-white';
     }
   };
 
@@ -69,7 +69,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
       <div className="space-y-4">
         {Object.entries(workflow.inputSchema).map(([key, field]: [string, any]) => (
           <div key={key} className="space-y-2">
-            <Label htmlFor={key} className="text-black">
+            <Label htmlFor={key}>
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </Label>
@@ -80,7 +80,6 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                 onChange={(e) => setInputValues({ ...inputValues, [key]: e.target.value })}
                 placeholder={field.placeholder}
                 required={field.required}
-                className="text-black"
               />
             ) : field.type === 'textarea' ? (
               <Textarea
@@ -90,7 +89,6 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                 placeholder={field.placeholder}
                 required={field.required}
                 rows={3}
-                className="text-black"
               />
             ) : null}
           </div>
@@ -101,102 +99,76 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="animate-fade-in">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2 hover:glow-text transition-all duration-300">
-          Workflow Controls
-        </h2>
-        <p className="text-gray-600 hover:text-purple-600 transition-colors duration-300">
-          Trigger and manage your automation workflows
-        </p>
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Workflow Controls</h2>
+        <p className="text-gray-600">Trigger and manage your automation workflows</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {workflows.map((workflow, index) => (
-          <Card 
-            key={workflow.id} 
-            className={`card-hover animate-fade-in ${getStatusColor(workflow.status)} border-2 hover:shadow-2xl hover:border-purple-300 transition-all duration-500 group`}
-            style={{ animationDelay: `${index * 0.1}s` }}
-          >
+        {workflows.map((workflow) => (
+          <Card key={workflow.id} className={`transition-all duration-200 hover:shadow-md ${getStatusColor(workflow.status)}`}>
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
-                <div className="space-y-1 flex-1">
-                  <CardTitle className="text-lg text-black font-semibold transition-all duration-300 hover:scale-105">
-                    {workflow.name}
-                  </CardTitle>
-                  <CardDescription className="text-sm text-black/80 transition-colors duration-300">
-                    {workflow.description}
-                  </CardDescription>
+                <div className="space-y-1">
+                  <CardTitle className="text-lg">{workflow.name}</CardTitle>
+                  <CardDescription className="text-sm">{workflow.description}</CardDescription>
                 </div>
-                <div className="animate-bounce-in" style={{ animationDelay: `${index * 0.1 + 0.2}s` }}>
-                  {getStatusIcon(workflow.status)}
-                </div>
+                {getStatusIcon(workflow.status)}
               </div>
             </CardHeader>
             
             <CardContent className="space-y-4">
               {/* Workflow Stats */}
               <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="text-center p-2 bg-white/70 rounded-lg hover:bg-white hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer group/stat">
-                  <div className="font-semibold text-black transition-colors duration-300">
-                    {workflow.executionCount}
-                  </div>
-                  <div className="text-black/80 transition-colors duration-300">
-                    Runs
-                  </div>
+                <div className="text-center p-2 bg-white/50 rounded">
+                  <div className="font-semibold text-gray-900">{workflow.executionCount}</div>
+                  <div className="text-gray-500">Runs</div>
                 </div>
-                <div className="text-center p-2 bg-white/70 rounded-lg hover:bg-white hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer group/stat">
-                  <div className="font-semibold text-black transition-colors duration-300">
-                    {workflow.successRate}%
-                  </div>
-                  <div className="text-black/80 transition-colors duration-300">
-                    Success
-                  </div>
+                <div className="text-center p-2 bg-white/50 rounded">
+                  <div className="font-semibold text-gray-900">{workflow.successRate}%</div>
+                  <div className="text-gray-500">Success</div>
                 </div>
-                <div className="text-center p-2 bg-white/70 rounded-lg hover:bg-white hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer group/stat">
-                  <div className="font-semibold text-black transition-colors duration-300">
-                    {workflow.avgExecutionTime}ms
-                  </div>
-                  <div className="text-black/80 transition-colors duration-300">
-                    Avg Time
-                  </div>
+                <div className="text-center p-2 bg-white/50 rounded">
+                  <div className="font-semibold text-gray-900">{workflow.avgExecutionTime}ms</div>
+                  <div className="text-gray-500">Avg Time</div>
                 </div>
               </div>
 
               {/* Last Run */}
               {workflow.lastRun && (
-                <div className="text-xs text-black/80 text-center transition-colors duration-300 animate-slide-up" style={{ animationDelay: `${index * 0.1 + 0.3}s` }}>
+                <div className="text-xs text-gray-500 text-center">
                   Last run: {workflow.lastRun.toLocaleString()}
                 </div>
               )}
 
               {/* Action Buttons */}
-              <div className="flex space-x-2 animate-slide-up" style={{ animationDelay: `${index * 0.1 + 0.4}s` }}>
+              <div className="flex space-x-2">
                 {workflow.requiresInput ? (
                   <Dialog open={inputDialogOpen === workflow.id} onOpenChange={(open) => !open && setInputDialogOpen(null)}>
                     <DialogTrigger asChild>
                       <Button
-                        className="flex-1 button-hover bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-none shadow-lg hover:shadow-xl"
+                        className="flex-1"
                         disabled={workflow.status === 'running' || !workflow.webhookUrl}
                         onClick={() => handleTriggerWorkflow(workflow)}
                       >
-                        <Play className="h-4 w-4 mr-2 hover:animate-pulse" />
+                        <Play className="h-4 w-4 mr-2" />
                         {workflow.status === 'running' ? 'Running...' : 'Run Workflow'}
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-white">
+                    <DialogContent>
                       <DialogHeader>
-                        <DialogTitle className="text-black">{workflow.name}</DialogTitle>
-                        <DialogDescription className="text-black/80">
+                        <DialogTitle>{workflow.name}</DialogTitle>
+                        <DialogDescription>
                           This workflow requires input parameters. Please fill out the form below.
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
                         {renderInputForm(workflow)}
                         <div className="flex justify-end space-x-2">
-                          <Button variant="outline" onClick={() => setInputDialogOpen(null)} className="text-black border-black/20 hover:bg-black/5">
+                          <Button variant="outline" onClick={() => setInputDialogOpen(null)}>
                             Cancel
                           </Button>
-                          <Button onClick={() => handleSubmitWithInput(workflow.id)} className="bg-purple-500 hover:bg-purple-600 text-white">
+                          <Button onClick={() => handleSubmitWithInput(workflow.id)}>
                             <Play className="h-4 w-4 mr-2" />
                             Run Workflow
                           </Button>
@@ -206,22 +178,20 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                   </Dialog>
                 ) : (
                   <Button
-                    className="flex-1 button-hover bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-none shadow-lg hover:shadow-xl"
+                    className="flex-1"
                     disabled={workflow.status === 'running' || !workflow.webhookUrl}
                     onClick={() => handleTriggerWorkflow(workflow)}
                   >
-                    <Play className="h-4 w-4 mr-2 hover:animate-pulse" />
+                    <Play className="h-4 w-4 mr-2" />
                     {workflow.status === 'running' ? 'Running...' : 'Run Workflow'}
                   </Button>
                 )}
               </div>
 
               {!workflow.webhookUrl && (
-                <div className="text-xs text-black bg-gradient-to-r from-amber-50 to-yellow-50 p-2 rounded flex items-center hover:bg-gradient-to-r hover:from-amber-100 hover:to-yellow-100 transition-all duration-300 animate-slide-up" style={{ animationDelay: `${index * 0.1 + 0.5}s` }}>
-                  <Settings className="h-3 w-3 mr-1 hover:rotate-45 transition-transform duration-300" />
-                  <span className="transition-colors duration-300 text-black">
-                    Webhook URL not configured
-                  </span>
+                <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded flex items-center">
+                  <Settings className="h-3 w-3 mr-1" />
+                  Webhook URL not configured
                 </div>
               )}
             </CardContent>
@@ -230,17 +200,11 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
       </div>
 
       {workflows.length === 0 && (
-        <div className="text-center py-12 animate-bounce-in">
-          <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4 hover:text-purple-500 hover:rotate-45 hover:scale-110 transition-all duration-300" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2 hover:rainbow-text transition-all duration-300">
-            No Workflows Configured
-          </h3>
-          <p className="text-gray-500 mb-4 hover:text-purple-600 transition-colors duration-300">
-            Get started by configuring your first workflow
-          </p>
-          <Button className="button-hover bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-none">
-            Configure Workflows
-          </Button>
+        <div className="text-center py-12">
+          <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Workflows Configured</h3>
+          <p className="text-gray-500 mb-4">Get started by configuring your first workflow</p>
+          <Button>Configure Workflows</Button>
         </div>
       )}
     </div>

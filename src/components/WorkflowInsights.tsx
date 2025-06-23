@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -551,7 +550,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
           {metricCards.map((card, index) => {
             const Icon = card.icon;
             return (
-              <Card key={index} className="relative overflow-hidden bg-white">
+              <Card key={index} className="relative overflow-hidden">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -579,14 +578,14 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Workflow Insights</h2>
-          <p className="text-gray-300">Detailed insights for {selectedWorkflowName}</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Workflow Insights</h2>
+          <p className="text-gray-600">Detailed insights for {selectedWorkflowName}</p>
         </div>
         
         {/* Workflow Selector */}
         <div className="sm:w-64">
           <Select value={selectedWorkflow} onValueChange={setSelectedWorkflow}>
-            <SelectTrigger className="bg-white">
+            <SelectTrigger>
               <ChevronDown className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Select workflow" />
             </SelectTrigger>
@@ -604,7 +603,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
 
       {/* Workflow Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-white">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -616,7 +615,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
           </CardContent>
         </Card>
         
-        <Card className="bg-white">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -628,7 +627,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
           </CardContent>
         </Card>
         
-        <Card className="bg-white">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -640,7 +639,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
           </CardContent>
         </Card>
         
-        <Card className="bg-white">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -659,13 +658,13 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
           {/* Metrics Charts */}
           {aggregatedMetrics.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-white">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-gray-900">
+                  <CardTitle className="flex items-center space-x-2">
                     <BarChart3 className="h-5 w-5" />
                     <span>Workflow Metrics</span>
                   </CardTitle>
-                  <CardDescription className="text-gray-600">Metrics extracted from workflow execution results</CardDescription>
+                  <CardDescription>Metrics extracted from workflow execution results</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ChartContainer config={chartConfig} className="h-[300px]">
@@ -682,13 +681,13 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
                 </CardContent>
               </Card>
 
-              <Card className="bg-white">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-gray-900">
+                  <CardTitle className="flex items-center space-x-2">
                     <Target className="h-5 w-5" />
                     <span>Latest Values</span>
                   </CardTitle>
-                  <CardDescription className="text-gray-600">Most recent metric values from executions</CardDescription>
+                  <CardDescription>Most recent metric values from executions</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ChartContainer config={chartConfig} className="h-[300px]">
@@ -710,14 +709,14 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
           {/* Tables */}
           {tables.length > 0 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white">Data Tables</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Data Tables</h3>
               {tables.map((table, index) => renderTable(table))}
             </div>
           )}
 
           {/* No Data Message */}
           {aggregatedMetrics.length === 0 && tables.length === 0 && (
-            <Card className="bg-white">
+            <Card>
               <CardContent className="text-center py-12">
                 <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Detailed Data Available</h3>
@@ -735,13 +734,13 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
       {workflowDistribution.length > 0 && selectedWorkflow === 'all' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Workflow Distribution */}
-          <Card className="bg-white">
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-gray-900">
+              <CardTitle className="flex items-center space-x-2">
                 <PieChart className="h-5 w-5" />
                 <span>Insight Distribution</span>
               </CardTitle>
-              <CardDescription className="text-gray-600">Breakdown of insight types</CardDescription>
+              <CardDescription>Breakdown of insight types</CardDescription>
             </CardHeader>
             <CardContent>
               <ChartContainer config={chartConfig} className="h-[300px]">
@@ -767,13 +766,13 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
           </Card>
 
           {/* Execution Trend */}
-          <Card className="bg-white">
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-gray-900">
+              <CardTitle className="flex items-center space-x-2">
                 <BarChart3 className="h-5 w-5" />
                 <span>Execution Trend</span>
               </CardTitle>
-              <CardDescription className="text-gray-600">Daily executions over the last 7 days</CardDescription>
+              <CardDescription>Daily executions over the last 7 days</CardDescription>
             </CardHeader>
             <CardContent>
               <ChartContainer config={chartConfig} className="h-[300px]">
@@ -799,7 +798,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
           {filteredSummaries.map((summary) => {
             const Icon = summary.icon;
             return (
-              <Card key={summary.type} className="relative overflow-hidden bg-white">
+              <Card key={summary.type} className="relative overflow-hidden">
                 <div 
                   className="absolute top-0 left-0 w-1 h-full" 
                   style={{ backgroundColor: summary.color }}
@@ -856,9 +855,9 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
 
       {/* Expanded Summary Details */}
       {expandedSummary && (
-        <Card className="bg-white">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-gray-900">
+            <CardTitle>
               {insightSummaries.find(s => s.type === expandedSummary)?.title} Details
             </CardTitle>
           </CardHeader>
@@ -869,7 +868,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
                 ?.details.map((detail, index) => (
                   <div key={index} className="border rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium text-gray-900">{detail.workflow}</h4>
+                      <h4 className="font-medium">{detail.workflow}</h4>
                       <span className="text-sm text-gray-500">
                         {detail.timestamp.toLocaleString()}
                       </span>
@@ -891,7 +890,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
 
       {/* Filters */}
       {selectedWorkflow === 'all' && (
-        <Card className="bg-white">
+        <Card>
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
@@ -927,7 +926,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
       )}
 
       {filteredSummaries.length === 0 && metricCards.length === 0 && (
-        <Card className="bg-white">
+        <Card>
           <CardContent className="text-center py-12">
             <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h3>

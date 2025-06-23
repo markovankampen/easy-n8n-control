@@ -110,15 +110,15 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Analytics & Data</h2>
-          <p className="text-gray-300">Monitor workflow performance and execution metrics</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Analytics & Data</h2>
+          <p className="text-gray-600">Monitor workflow performance and execution metrics</p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={() => exportData('workflows')} className="text-black border-black/20 hover:bg-black/5">
+          <Button variant="outline" size="sm" onClick={() => exportData('workflows')}>
             <Download className="h-4 w-4 mr-2" />
             Export Workflows
           </Button>
-          <Button variant="outline" size="sm" onClick={() => exportData('executions')} className="text-black border-black/20 hover:bg-black/5">
+          <Button variant="outline" size="sm" onClick={() => exportData('executions')}>
             <Download className="h-4 w-4 mr-2" />
             Export Executions
           </Button>
@@ -127,36 +127,36 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
 
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-white">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-black/70">Today</p>
-                <p className="text-2xl font-bold text-black">{stats.today}</p>
+                <p className="text-sm font-medium text-gray-600">Today</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.today}</p>
               </div>
               <Activity className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-white">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-black/70">This Week</p>
-                <p className="text-2xl font-bold text-black">{stats.thisWeek}</p>
+                <p className="text-sm font-medium text-gray-600">This Week</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.thisWeek}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
         
-        <Card className="bg-white">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-black/70">Success Rate</p>
-                <p className="text-2xl font-bold text-black">
+                <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                <p className="text-2xl font-bold text-gray-900">
                   {stats.total > 0 ? Math.round((stats.successful / stats.total) * 100) : 0}%
                 </p>
               </div>
@@ -165,12 +165,12 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
           </CardContent>
         </Card>
         
-        <Card className="bg-white">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-black/70">Total Executions</p>
-                <p className="text-2xl font-bold text-black">{stats.total}</p>
+                <p className="text-sm font-medium text-gray-600">Total Executions</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
               </div>
               <Clock className="h-8 w-8 text-gray-500" />
             </div>
@@ -181,24 +181,18 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Workflow Performance */}
-        <Card className="bg-white">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-black">Workflow Performance</CardTitle>
-            <CardDescription className="text-black/70">Execution counts and success rates by workflow</CardDescription>
+            <CardTitle>Workflow Performance</CardTitle>
+            <CardDescription>Execution counts and success rates by workflow</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={workflowData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#000' }} />
-                <YAxis tick={{ fill: '#000' }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #ccc', 
-                    color: 'black' 
-                  }} 
-                />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis />
+                <Tooltip />
                 <Bar dataKey="executions" fill="#3b82f6" />
               </BarChart>
             </ResponsiveContainer>
@@ -206,10 +200,10 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
         </Card>
 
         {/* Status Distribution */}
-        <Card className="bg-white">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-black">Execution Status</CardTitle>
-            <CardDescription className="text-black/70">Distribution of execution outcomes</CardDescription>
+            <CardTitle>Execution Status</CardTitle>
+            <CardDescription>Distribution of execution outcomes</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -228,37 +222,25 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #ccc', 
-                    color: 'black' 
-                  }} 
-                />
+                <Tooltip />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* Execution Trend */}
-        <Card className="lg:col-span-2 bg-white">
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-black">7-Day Execution Trend</CardTitle>
-            <CardDescription className="text-black/70">Daily workflow execution activity</CardDescription>
+            <CardTitle>7-Day Execution Trend</CardTitle>
+            <CardDescription>Daily workflow execution activity</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fill: '#000' }} />
-                <YAxis tick={{ fill: '#000' }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #ccc', 
-                    color: 'black' 
-                  }} 
-                />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
                 <Line type="monotone" dataKey="executions" stroke="#3b82f6" strokeWidth={2} />
                 <Line type="monotone" dataKey="successful" stroke="#10b981" strokeWidth={2} />
                 <Line type="monotone" dataKey="failed" stroke="#ef4444" strokeWidth={2} />
@@ -269,37 +251,37 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
       </div>
 
       {/* Workflow Details Table */}
-      <Card className="bg-white">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-black">Workflow Details</CardTitle>
-          <CardDescription className="text-black/70">Detailed performance metrics for each workflow</CardDescription>
+          <CardTitle>Workflow Details</CardTitle>
+          <CardDescription>Detailed performance metrics for each workflow</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 text-black font-medium">Workflow</th>
-                  <th className="text-right py-2 text-black font-medium">Executions</th>
-                  <th className="text-right py-2 text-black font-medium">Success Rate</th>
-                  <th className="text-right py-2 text-black font-medium">Avg Time</th>
-                  <th className="text-right py-2 text-black font-medium">Last Run</th>
-                  <th className="text-center py-2 text-black font-medium">Status</th>
+                <tr className="border-b">
+                  <th className="text-left py-2">Workflow</th>
+                  <th className="text-right py-2">Executions</th>
+                  <th className="text-right py-2">Success Rate</th>
+                  <th className="text-right py-2">Avg Time</th>
+                  <th className="text-right py-2">Last Run</th>
+                  <th className="text-center py-2">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {workflows.map((workflow) => (
-                  <tr key={workflow.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <tr key={workflow.id} className="border-b hover:bg-gray-50">
                     <td className="py-3">
                       <div>
-                        <div className="font-medium text-black">{workflow.name}</div>
-                        <div className="text-black/60 text-xs">{workflow.description}</div>
+                        <div className="font-medium">{workflow.name}</div>
+                        <div className="text-gray-500 text-xs">{workflow.description}</div>
                       </div>
                     </td>
-                    <td className="text-right py-3 text-black">{workflow.executionCount}</td>
-                    <td className="text-right py-3 text-black">{workflow.successRate}%</td>
-                    <td className="text-right py-3 text-black">{workflow.avgExecutionTime}ms</td>
-                    <td className="text-right py-3 text-black">
+                    <td className="text-right py-3">{workflow.executionCount}</td>
+                    <td className="text-right py-3">{workflow.successRate}%</td>
+                    <td className="text-right py-3">{workflow.avgExecutionTime}ms</td>
+                    <td className="text-right py-3">
                       {workflow.lastRun ? workflow.lastRun.toLocaleString() : 'Never'}
                     </td>
                     <td className="text-center py-3">
