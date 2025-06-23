@@ -12,6 +12,7 @@ import { Workflow } from '../pages/Index';
 import { WebhookService } from '../services/WebhookService';
 import { Plus, Trash2, Edit, TestTube, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { DatabaseService } from '../services/DatabaseService';
 
 interface ConfigurationModalProps {
   isOpen: boolean;
@@ -64,7 +65,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
     setActiveTab('create');
   };
 
-  const handleSaveWorkflow = () => {
+  const handleSaveWorkflow = async () => {
     if (!formData.name.trim() || !formData.description.trim()) {
       toast({
         title: "Validation Error",
@@ -102,30 +103,55 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
       lastRun: editingWorkflow?.lastRun
     };
 
-    const updatedWorkflows = editingWorkflow
-      ? workflows.map(w => w.id === editingWorkflow.id ? workflowData : w)
-      : [...workflows, workflowData];
+    try {
+      if (editingWorkflow) {
+        await DatabaseService.updateWorkflow(workflowData);
+      } else {
+        await DatabaseService.createWorkflow(workflowData);
+      }
 
-    onUpdateWorkflows(updatedWorkflows);
-    resetForm();
-    
-    toast({
-      title: editingWorkflow ? "Workflow Updated" : "Workflow Created",
-      description: `${workflowData.name} has been ${editingWorkflow ? 'updated' : 'created'} successfully.`
-    });
+      // Reload workflows from database to get fresh data
+      const updatedWorkflows = await DatabaseService.getWorkflows();
+      onUpdateWorkflows(updatedWorkflows);
+      resetForm();
+      
+      toast({
+        title: editingWorkflow ? "Workflow Updated" : "Workflow Created",
+        description: `${workflowData.name} has been ${editingWorkflow ? 'updated' : 'created'} successfully.`
+      });
 
-    // Switch back to workflows tab after saving
-    setActiveTab('workflows');
+      // Switch back to workflows tab after saving
+      setActiveTab('workflows');
+    } catch (error) {
+      console.error('Error saving workflow:', error);
+      toast({
+        title: "Error",
+        description: `Failed to ${editingWorkflow ? 'update' : 'create'} workflow.`,
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteWorkflow = (workflowId: string) => {
-    const updatedWorkflows = workflows.filter(w => w.id !== workflowId);
-    onUpdateWorkflows(updatedWorkflows);
-    
-    toast({
-      title: "Workflow Deleted",
-      description: "The workflow has been removed successfully."
-    });
+  const handleDeleteWorkflow = async (workflowId: string) => {
+    try {
+      await DatabaseService.deleteWorkflow(workflowId);
+      
+      // Reload workflows from database to get fresh data
+      const updatedWorkflows = await DatabaseService.getWorkflows();
+      onUpdateWorkflows(updatedWorkflows);
+      
+      toast({
+        title: "Workflow Deleted",
+        description: "The workflow and all its executions have been removed successfully."
+      });
+    } catch (error) {
+      console.error('Error deleting workflow:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete workflow.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleTestWebhook = async (webhookUrl: string, workflowId: string) => {

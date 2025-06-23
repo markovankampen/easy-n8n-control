@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { WorkflowPanel } from '../components/WorkflowPanel';
 import { StatusDisplay } from '../components/StatusDisplay';
@@ -216,16 +215,12 @@ const Index = () => {
   };
 
   const handleWorkflowUpdate = async (updatedWorkflows: Workflow[]) => {
-    // Update webhook URLs in database
     try {
-      for (const workflow of updatedWorkflows) {
-        const originalWorkflow = workflows.find(w => w.id === workflow.id);
-        if (originalWorkflow && originalWorkflow.webhookUrl !== workflow.webhookUrl) {
-          await DatabaseService.updateWorkflowWebhookUrl(workflow.id, workflow.webhookUrl);
-        }
-      }
-      
       setWorkflows(updatedWorkflows);
+      
+      // Also reload executions to ensure consistency
+      const executionsData = await DatabaseService.getExecutions();
+      setExecutions(executionsData);
       
       toast({
         title: "Configuration Updated",

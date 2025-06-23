@@ -98,6 +98,67 @@ export class DatabaseService {
     }
   }
 
+  static async createWorkflow(workflow: Omit<Workflow, 'status' | 'executionCount' | 'successRate' | 'avgExecutionTime' | 'lastRun'>): Promise<void> {
+    console.log('Creating workflow in database:', { id: workflow.id, name: workflow.name });
+
+    const { error } = await supabase
+      .from('workflows')
+      .insert({
+        id: workflow.id,
+        name: workflow.name,
+        description: workflow.description,
+        webhook_url: workflow.webhookUrl,
+        requires_input: workflow.requiresInput,
+        input_schema: workflow.inputSchema
+      });
+
+    if (error) {
+      console.error('Error creating workflow:', error);
+      throw error;
+    }
+
+    console.log('Workflow created successfully in database');
+  }
+
+  static async updateWorkflow(workflow: Workflow): Promise<void> {
+    console.log('Updating workflow in database:', { id: workflow.id, name: workflow.name });
+
+    const { error } = await supabase
+      .from('workflows')
+      .update({
+        name: workflow.name,
+        description: workflow.description,
+        webhook_url: workflow.webhookUrl,
+        requires_input: workflow.requiresInput,
+        input_schema: workflow.inputSchema
+      })
+      .eq('id', workflow.id);
+
+    if (error) {
+      console.error('Error updating workflow:', error);
+      throw error;
+    }
+
+    console.log('Workflow updated successfully in database');
+  }
+
+  static async deleteWorkflow(workflowId: string): Promise<void> {
+    console.log('Deleting workflow from database:', { workflowId });
+
+    // The foreign key constraint with CASCADE will automatically delete related executions
+    const { error } = await supabase
+      .from('workflows')
+      .delete()
+      .eq('id', workflowId);
+
+    if (error) {
+      console.error('Error deleting workflow:', error);
+      throw error;
+    }
+
+    console.log('Workflow deleted successfully from database');
+  }
+
   private static mapDatabaseToWorkflow(dbWorkflow: any): Workflow {
     return {
       id: dbWorkflow.id,
