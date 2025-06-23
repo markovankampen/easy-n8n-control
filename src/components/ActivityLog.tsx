@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -74,31 +73,31 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Activity Log</h2>
-        <p className="text-gray-600">Track all workflow executions and their outcomes</p>
+        <h2 className="text-2xl font-bold text-white mb-2">Activity Log</h2>
+        <p className="text-gray-300">Track all workflow executions and their outcomes</p>
       </div>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="bg-white">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-gray-900">{summary.total}</div>
             <div className="text-sm text-gray-500">Total</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-white">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">{summary.running}</div>
             <div className="text-sm text-gray-500">Running</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-white">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-green-600">{summary.successful}</div>
             <div className="text-sm text-gray-500">Successful</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-white">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-red-600">{summary.failed}</div>
             <div className="text-sm text-gray-500">Failed</div>
@@ -107,7 +106,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="bg-white">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
@@ -140,10 +139,10 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
       </Card>
 
       {/* Execution List */}
-      <Card>
+      <Card className="bg-white">
         <CardHeader>
-          <CardTitle>Recent Executions</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-gray-900">Recent Executions</CardTitle>
+          <CardDescription className="text-gray-600">
             {filteredExecutions.length} execution{filteredExecutions.length !== 1 ? 's' : ''} found
           </CardDescription>
         </CardHeader>
@@ -177,7 +176,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
                       
                       <div className="flex items-center space-x-4">
                         <div className="text-right hidden sm:block">
-                          <div className="text-sm font-medium">
+                          <div className="text-sm font-medium text-gray-900">
                             Duration: {formatDuration(execution.duration)}
                           </div>
                           {execution.endTime && (
@@ -216,19 +215,19 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ executions }) => {
                           <dl className="space-y-1">
                             <div className="flex justify-between">
                               <dt className="text-gray-500">Execution ID:</dt>
-                              <dd className="font-mono text-xs">{execution.id}</dd>
+                              <dd className="font-mono text-xs text-gray-900">{execution.id}</dd>
                             </div>
                             <div className="flex justify-between">
                               <dt className="text-gray-500">Workflow ID:</dt>
-                              <dd className="font-mono text-xs">{execution.workflowId}</dd>
+                              <dd className="font-mono text-xs text-gray-900">{execution.workflowId}</dd>
                             </div>
                             <div className="flex justify-between">
                               <dt className="text-gray-500">Status:</dt>
-                              <dd>{execution.status}</dd>
+                              <dd className="text-gray-900">{execution.status}</dd>
                             </div>
                             <div className="flex justify-between">
                               <dt className="text-gray-500">Duration:</dt>
-                              <dd>{formatDuration(execution.duration)}</dd>
+                              <dd className="text-gray-900">{formatDuration(execution.duration)}</dd>
                             </div>
                           </dl>
                         </div>

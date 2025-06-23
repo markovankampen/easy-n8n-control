@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -110,8 +109,8 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Analytics & Data</h2>
-          <p className="text-gray-600">Monitor workflow performance and execution metrics</p>
+          <h2 className="text-2xl font-bold text-white mb-2">Analytics & Data</h2>
+          <p className="text-gray-300">Monitor workflow performance and execution metrics</p>
         </div>
         <div className="flex space-x-2">
           <Button variant="outline" size="sm" onClick={() => exportData('workflows')}>
@@ -127,7 +126,7 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
 
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="bg-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -139,7 +138,7 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -151,7 +150,7 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -165,7 +164,7 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-white">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -181,10 +180,10 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Workflow Performance */}
-        <Card>
+        <Card className="bg-white">
           <CardHeader>
-            <CardTitle>Workflow Performance</CardTitle>
-            <CardDescription>Execution counts and success rates by workflow</CardDescription>
+            <CardTitle className="text-gray-900">Workflow Performance</CardTitle>
+            <CardDescription className="text-gray-600">Execution counts and success rates by workflow</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -200,10 +199,10 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
         </Card>
 
         {/* Status Distribution */}
-        <Card>
+        <Card className="bg-white">
           <CardHeader>
-            <CardTitle>Execution Status</CardTitle>
-            <CardDescription>Distribution of execution outcomes</CardDescription>
+            <CardTitle className="text-gray-900">Execution Status</CardTitle>
+            <CardDescription className="text-gray-600">Distribution of execution outcomes</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -229,10 +228,10 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
         </Card>
 
         {/* Execution Trend */}
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 bg-white">
           <CardHeader>
-            <CardTitle>7-Day Execution Trend</CardTitle>
-            <CardDescription>Daily workflow execution activity</CardDescription>
+            <CardTitle className="text-gray-900">7-Day Execution Trend</CardTitle>
+            <CardDescription className="text-gray-600">Daily workflow execution activity</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -251,22 +250,22 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
       </div>
 
       {/* Workflow Details Table */}
-      <Card>
+      <Card className="bg-white">
         <CardHeader>
-          <CardTitle>Workflow Details</CardTitle>
-          <CardDescription>Detailed performance metrics for each workflow</CardDescription>
+          <CardTitle className="text-gray-900">Workflow Details</CardTitle>
+          <CardDescription className="text-gray-600">Detailed performance metrics for each workflow</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2">Workflow</th>
-                  <th className="text-right py-2">Executions</th>
-                  <th className="text-right py-2">Success Rate</th>
-                  <th className="text-right py-2">Avg Time</th>
-                  <th className="text-right py-2">Last Run</th>
-                  <th className="text-center py-2">Status</th>
+                  <th className="text-left py-2 text-gray-900">Workflow</th>
+                  <th className="text-right py-2 text-gray-900">Executions</th>
+                  <th className="text-right py-2 text-gray-900">Success Rate</th>
+                  <th className="text-right py-2 text-gray-900">Avg Time</th>
+                  <th className="text-right py-2 text-gray-900">Last Run</th>
+                  <th className="text-center py-2 text-gray-900">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -274,14 +273,14 @@ export const DataVisualization: React.FC<DataVisualizationProps> = ({
                   <tr key={workflow.id} className="border-b hover:bg-gray-50">
                     <td className="py-3">
                       <div>
-                        <div className="font-medium">{workflow.name}</div>
+                        <div className="font-medium text-gray-900">{workflow.name}</div>
                         <div className="text-gray-500 text-xs">{workflow.description}</div>
                       </div>
                     </td>
-                    <td className="text-right py-3">{workflow.executionCount}</td>
-                    <td className="text-right py-3">{workflow.successRate}%</td>
-                    <td className="text-right py-3">{workflow.avgExecutionTime}ms</td>
-                    <td className="text-right py-3">
+                    <td className="text-right py-3 text-gray-900">{workflow.executionCount}</td>
+                    <td className="text-right py-3 text-gray-900">{workflow.successRate}%</td>
+                    <td className="text-right py-3 text-gray-900">{workflow.avgExecutionTime}ms</td>
+                    <td className="text-right py-3 text-gray-900">
                       {workflow.lastRun ? workflow.lastRun.toLocaleString() : 'Never'}
                     </td>
                     <td className="text-center py-3">
