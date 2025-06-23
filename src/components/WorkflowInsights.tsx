@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { WorkflowExecution } from '../pages/Index';
-import { TrendingUp, Target, AlertTriangle, Search, Filter, Eye, EyeOff, BarChart3, PieChart, Users, Trophy, Activity } from 'lucide-react';
+import { TrendingUp, Target, AlertTriangle, Search, Filter, Eye, EyeOff, BarChart3, PieChart, Users, Trophy, Activity, ChevronDown } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
 
@@ -43,7 +43,28 @@ const chartConfig = {
 export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [selectedWorkflow, setSelectedWorkflow] = useState<string>('all');
   const [expandedSummary, setExpandedSummary] = useState<string | null>(null);
+
+  // Get unique workflows from executions
+  const uniqueWorkflows = useMemo(() => {
+    const workflowMap = new Map();
+    executions.forEach(exec => {
+      if (!workflowMap.has(exec.workflowId)) {
+        workflowMap.set(exec.workflowId, {
+          id: exec.workflowId,
+          name: exec.workflowName
+        });
+      }
+    });
+    return Array.from(workflowMap.values());
+  }, [executions]);
+
+  // Filter executions based on selected workflow
+  const filteredExecutions = useMemo(() => {
+    if (selectedWorkflow === 'all') return executions;
+    return executions.filter(exec => exec.workflowId === selectedWorkflow);
+  }, [executions, selectedWorkflow]);
 
   const generateInsightSummaries = (executions: WorkflowExecution[]): InsightSummary[] => {
     const summaries: InsightSummary[] = [];
@@ -177,7 +198,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
     return summaries.sort((a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime());
   };
 
-  const insightSummaries = useMemo(() => generateInsightSummaries(executions), [executions]);
+  const insightSummaries = useMemo(() => generateInsightSummaries(filteredExecutions), [filteredExecutions]);
 
   const filteredSummaries = insightSummaries.filter(summary => {
     const matchesSearch = summary.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -200,7 +221,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      const dayExecutions = executions.filter(exec => 
+      const dayExecutions = filteredExecutions.filter(exec => 
         (exec.endTime || exec.startTime).toDateString() === date.toDateString()
       );
       
@@ -215,8 +236,24 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
     return last7Days;
   };
 
+  // Get execution statistics for selected workflow
+  const getWorkflowStats = () => {
+    const totalExecutions = filteredExecutions.length;
+    const successfulExecutions = filteredExecutions.filter(exec => exec.status === 'success').length;
+    const failedExecutions = filteredExecutions.filter(exec => exec.status === 'failed').length;
+    const successRate = totalExecutions > 0 ? Math.round((successfulExecutions / totalExecutions) * 100) : 0;
+    
+    return {
+      total: totalExecutions,
+      success: successfulExecutions,
+      failed: failedExecutions,
+      successRate
+    };
+  };
+
   const workflowDistribution = getWorkflowDistribution();
   const trendData = getTrendData();
+  const workflowStats = getWorkflowStats();
 
   const getTrendIcon = (trend?: 'up' | 'down' | 'stable') => {
     switch (trend) {
@@ -226,131 +263,210 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
     }
   };
 
+  const selectedWorkflowName = selectedWorkflow === 'all' 
+    ? 'All Workflows' 
+    : uniqueWorkflows.find(w => w.id === selectedWorkflow)?.name || 'Unknown';
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Workflow Insights Summary</h2>
-        <p className="text-gray-600">Comprehensive overview of all workflow executions and their insights</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Workflow Insights</h2>
+          <p className="text-gray-600">Detailed insights for {selectedWorkflowName}</p>
+        </div>
+        
+        {/* Workflow Selector */}
+        <div className="sm:w-64">
+          <Select value={selectedWorkflow} onValueChange={setSelectedWorkflow}>
+            <SelectTrigger>
+              <ChevronDown className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Select workflow" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Workflows</SelectItem>
+              {uniqueWorkflows.map(workflow => (
+                <SelectItem key={workflow.id} value={workflow.id}>
+                  {workflow.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Workflow Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Executions</p>
+                <p className="text-2xl font-bold text-gray-900">{workflowStats.total}</p>
+              </div>
+              <Activity className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Successful</p>
+                <p className="text-2xl font-bold text-green-600">{workflowStats.success}</p>
+              </div>
+              <Trophy className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Failed</p>
+                <p className="text-2xl font-bold text-red-600">{workflowStats.failed}</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                <p className="text-2xl font-bold text-blue-600">{workflowStats.successRate}%</p>
+              </div>
+              <Target className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Overview Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Workflow Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <PieChart className="h-5 w-5" />
-              <span>Workflow Distribution</span>
-            </CardTitle>
-            <CardDescription>Breakdown of workflow types executed</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart>
-                  <Pie
-                    data={workflowDistribution}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {workflowDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                </RechartsPieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+      {workflowDistribution.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Workflow Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <PieChart className="h-5 w-5" />
+                <span>Insight Distribution</span>
+              </CardTitle>
+              <CardDescription>Breakdown of insight types</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPieChart>
+                    <Pie
+                      data={workflowDistribution}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {workflowDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
 
-        {/* Execution Trend */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <BarChart3 className="h-5 w-5" />
-              <span>Execution Trend</span>
-            </CardTitle>
-            <CardDescription>Daily workflow executions over the last 7 days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area type="monotone" dataKey="success" stackId="1" fill="#10b981" />
-                  <Area type="monotone" dataKey="failed" stackId="1" fill="#ef4444" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Execution Trend */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <BarChart3 className="h-5 w-5" />
+                <span>Execution Trend</span>
+              </CardTitle>
+              <CardDescription>Daily executions over the last 7 days</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trendData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Area type="monotone" dataKey="success" stackId="1" fill="#10b981" />
+                    <Area type="monotone" dataKey="failed" stackId="1" fill="#ef4444" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Insight Summary Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {insightSummaries.map((summary) => {
-          const Icon = summary.icon;
-          return (
-            <Card key={summary.type} className="relative overflow-hidden">
-              <div 
-                className="absolute top-0 left-0 w-1 h-full" 
-                style={{ backgroundColor: summary.color }}
-              />
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div 
-                      className="p-2 rounded-lg"
-                      style={{ backgroundColor: `${summary.color}20` }}
+      {filteredSummaries.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredSummaries.map((summary) => {
+            const Icon = summary.icon;
+            return (
+              <Card key={summary.type} className="relative overflow-hidden">
+                <div 
+                  className="absolute top-0 left-0 w-1 h-full" 
+                  style={{ backgroundColor: summary.color }}
+                />
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div 
+                        className="p-2 rounded-lg"
+                        style={{ backgroundColor: `${summary.color}20` }}
+                      >
+                        <Icon className="h-6 w-6" color={summary.color} />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{summary.title}</h3>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">{summary.value}</p>
+                      </div>
+                    </div>
+                    {getTrendIcon(summary.trend)}
+                  </div>
+                  
+                  {summary.change && (
+                    <div className="mt-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {summary.change}
+                      </Badge>
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-sm text-gray-500">
+                      Updated {summary.lastUpdated.toLocaleDateString()}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setExpandedSummary(
+                        expandedSummary === summary.type ? null : summary.type
+                      )}
                     >
-                      <Icon className="h-6 w-6" color={summary.color} />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{summary.title}</h3>
-                      <p className="text-2xl font-bold text-gray-900 mt-1">{summary.value}</p>
-                    </div>
+                      {expandedSummary === summary.type ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
-                  {getTrendIcon(summary.trend)}
-                </div>
-                
-                {summary.change && (
-                  <div className="mt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {summary.change}
-                    </Badge>
-                  </div>
-                )}
-                
-                <div className="mt-4 flex items-center justify-between">
-                  <span className="text-sm text-gray-500">
-                    Updated {summary.lastUpdated.toLocaleDateString()}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setExpandedSummary(
-                      expandedSummary === summary.type ? null : summary.type
-                    )}
-                  >
-                    {expandedSummary === summary.type ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* Expanded Summary Details */}
       {expandedSummary && (
@@ -428,7 +544,10 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
             <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Insights Available</h3>
             <p className="text-gray-500">
-              Execute some workflows to generate insights and summaries
+              {selectedWorkflow === 'all' 
+                ? 'Execute some workflows to generate insights and summaries'
+                : `No insights available for ${selectedWorkflowName}. Try executing this workflow to generate insights.`
+              }
             </p>
           </CardContent>
         </Card>
