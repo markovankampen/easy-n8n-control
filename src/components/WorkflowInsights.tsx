@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { WorkflowExecution } from '../pages/Index';
-import { TrendingUp, Target, AlertTriangle, Search, Filter, Eye, EyeOff, BarChart3, PieChart, Users, Trophy, Activity, ChevronDown, MessageSquare, MessageSquareX } from 'lucide-react';
+import { TrendingUp, Target, AlertTriangle, Search, Filter, Eye, EyeOff, BarChart3, PieChart, Users, Trophy, Activity, ChevronDown, MessageSquare, Clock } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
 
@@ -75,70 +75,66 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
     return executions.filter(exec => exec.workflowId === selectedWorkflow);
   }, [executions, selectedWorkflow]);
 
-  // Generate metric cards based on real executions data
+  // Generate metric cards based on real workflow data from database
   const generateMetricCards = (executions: WorkflowExecution[]): MetricCard[] => {
     const cards: MetricCard[] = [];
-    const successfulExecutions = executions.filter(exec => exec.status === 'success');
-    const runningExecutions = executions.filter(exec => exec.status === 'running');
-    const failedExecutions = executions.filter(exec => exec.status === 'failed');
     
-    // Get recent executions (last 24 hours)
-    const recentExecutions = executions.filter(exec => {
-      const executionDate = exec.endTime || exec.startTime;
-      const hoursDiff = Math.floor((Date.now() - executionDate.getTime()) / (1000 * 60 * 60));
-      return hoursDiff <= 24;
-    });
+    // Total Executions - count of all executions
+    const totalExecutions = executions.length;
+    if (totalExecutions > 0) {
+      cards.push({
+        title: 'Total Executions',
+        value: totalExecutions,
+        subtitle: 'All workflow runs',
+        trend: 'up',
+        icon: Activity,
+        color: '#3b82f6'
+      });
+    }
 
-    // Active Trends - based on successful recent executions
-    const trendingExecutions = recentExecutions.filter(exec => exec.status === 'success');
-    
-    cards.push({
-      title: 'Active Trends',
-      value: trendingExecutions.length,
-      subtitle: `${recentExecutions.length} executions today`,
-      trend: trendingExecutions.length > failedExecutions.length ? 'up' : trendingExecutions.length === 0 && failedExecutions.length === 0 ? 'stable' : 'down',
-      icon: TrendingUp,
-      color: '#10b981'
-    });
+    // Successful Executions - count of successful runs
+    const successfulExecutions = executions.filter(exec => exec.status === 'success').length;
+    if (successfulExecutions > 0) {
+      cards.push({
+        title: 'Successful Runs',
+        value: successfulExecutions,
+        subtitle: 'Completed successfully',
+        trend: 'up',
+        icon: Trophy,
+        color: '#10b981'
+      });
+    }
 
-    // Tracked Workflows - count of unique workflows
-    const uniqueWorkflowCount = new Set(executions.map(exec => exec.workflowId)).size;
-    
-    cards.push({
-      title: 'Tracked Workflows',
-      value: uniqueWorkflowCount,
-      subtitle: `${runningExecutions.length} currently running`,
-      trend: runningExecutions.length > 0 ? 'up' : 'stable',
-      icon: Users,
-      color: '#3b82f6'
-    });
+    // Failed Executions - count of failed runs
+    const failedExecutions = executions.filter(exec => exec.status === 'failed').length;
+    if (failedExecutions > 0) {
+      cards.push({
+        title: 'Failed Runs',
+        value: failedExecutions,
+        subtitle: 'Execution failures',
+        trend: 'down',
+        icon: AlertTriangle,
+        color: '#ef4444'
+      });
+    }
 
-    // Content Ready - successful executions with results
-    const contentExecutions = successfulExecutions.filter(exec => exec.result);
-    
-    cards.push({
-      title: 'Content Ready',
-      value: contentExecutions.length,
-      subtitle: `${Math.max(0, successfulExecutions.length - contentExecutions.length)} pending data`,
-      trend: contentExecutions.length > 0 ? 'up' : 'stable',
-      icon: MessageSquare,
-      color: '#8b5cf6'
-    });
-
-    // Success Rate - based on completed executions
-    const completedExecutions = executions.filter(exec => exec.status !== 'running');
-    const successRate = completedExecutions.length > 0 
-      ? Math.round((successfulExecutions.length / completedExecutions.length) * 100) 
-      : 0;
-    
-    cards.push({
-      title: 'Success Rate',
-      value: `${successRate}%`,
-      subtitle: `${successfulExecutions.length}/${completedExecutions.length} successful`,
-      trend: successRate >= 80 ? 'up' : successRate >= 60 ? 'stable' : 'down',
-      icon: Trophy,
-      color: successRate >= 80 ? '#10b981' : successRate >= 60 ? '#f59e0b' : '#ef4444'
-    });
+    // Average Execution Time - from duration field
+    const completedExecutions = executions.filter(exec => exec.duration && exec.duration > 0);
+    if (completedExecutions.length > 0) {
+      const avgDuration = Math.round(
+        completedExecutions.reduce((sum, exec) => sum + (exec.duration || 0), 0) / completedExecutions.length
+      );
+      const avgSeconds = (avgDuration / 1000).toFixed(1);
+      
+      cards.push({
+        title: 'Avg Duration',
+        value: `${avgSeconds}s`,
+        subtitle: `${completedExecutions.length} completed runs`,
+        trend: 'stable',
+        icon: Clock,
+        color: '#f59e0b'
+      });
+    }
 
     return cards;
   };
@@ -348,33 +344,35 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
   return (
     <div className="space-y-6">
       {/* Metric Cards - Above title */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {metricCards.map((card, index) => {
-          const Icon = card.icon;
-          return (
-            <Card key={index} className="relative overflow-hidden">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-gray-600 mb-1">{card.title}</h3>
-                    <p className="text-2xl font-bold text-gray-900 mb-1">{card.value}</p>
-                    <p className="text-xs text-gray-500">{card.subtitle}</p>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <div 
-                      className="p-2 rounded-lg mb-2"
-                      style={{ backgroundColor: `${card.color}20` }}
-                    >
-                      <Icon className="h-5 w-5" color={card.color} />
+      {metricCards.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {metricCards.map((card, index) => {
+            const Icon = card.icon;
+            return (
+              <Card key={index} className="relative overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-sm font-medium text-gray-600 mb-1">{card.title}</h3>
+                      <p className="text-2xl font-bold text-gray-900 mb-1">{card.value}</p>
+                      <p className="text-xs text-gray-500">{card.subtitle}</p>
                     </div>
-                    {getTrendIcon(card.trend)}
+                    <div className="flex flex-col items-end">
+                      <div 
+                        className="p-2 rounded-lg mb-2"
+                        style={{ backgroundColor: `${card.color}20` }}
+                      >
+                        <Icon className="h-5 w-5" style={{ color: card.color }} />
+                      </div>
+                      {getTrendIcon(card.trend)}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -533,7 +531,7 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
                         className="p-2 rounded-lg"
                         style={{ backgroundColor: `${summary.color}20` }}
                       >
-                        <Icon className="h-6 w-6" color={summary.color} />
+                        <Icon className="h-6 w-6" style={{ color: summary.color }} />
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900">{summary.title}</h3>
@@ -646,15 +644,15 @@ export const WorkflowInsights: React.FC<WorkflowInsightsProps> = ({ executions }
         </CardContent>
       </Card>
 
-      {filteredSummaries.length === 0 && (
+      {filteredSummaries.length === 0 && metricCards.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
             <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Insights Available</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h3>
             <p className="text-gray-500">
               {selectedWorkflow === 'all' 
-                ? 'Execute some workflows to generate insights and summaries'
-                : `No insights available for ${selectedWorkflowName}. Try executing this workflow to generate insights.`
+                ? 'Execute some workflows to generate data and insights'
+                : `No data available for ${selectedWorkflowName}. Try executing this workflow to generate insights.`
               }
             </p>
           </CardContent>
