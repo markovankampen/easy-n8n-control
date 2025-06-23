@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Workflow, WorkflowExecution } from "../pages/Index";
 
@@ -146,35 +147,22 @@ export class DatabaseService {
   }
 
   static async deleteWorkflow(workflowId: string): Promise<void> {
-    console.log('Deleting workflow from database:', { workflowId });
+    console.log('Deleting workflow and all related data:', { workflowId });
 
-    // First delete all related executions explicitly
-    const { error: executionError } = await supabase
-      .from('workflow_executions')
-      .delete()
-      .eq('workflow_id', workflowId);
+    // Use the cascade deletion function
+    const { error } = await supabase.rpc('delete_workflow_cascade', {
+      workflow_id_param: workflowId
+    });
 
-    if (executionError) {
-      console.error('Error deleting workflow executions:', executionError);
-    } else {
-      console.log('Successfully deleted workflow executions');
+    if (error) {
+      console.error('Error deleting workflow with cascade:', error);
+      throw error;
     }
 
-    // Then delete the workflow
-    const { error: workflowError } = await supabase
-      .from('workflows')
-      .delete()
-      .eq('id', workflowId);
-
-    if (workflowError) {
-      console.error('Error deleting workflow:', workflowError);
-      throw workflowError;
-    }
-
-    console.log('Workflow deleted successfully from database');
+    console.log('Workflow and all related data deleted successfully');
   }
 
-  private static mapDatabaseToWorkflow(dbWorkflow: any): Workflow {
+  static mapDatabaseToWorkflow(dbWorkflow: any): Workflow {
     return {
       id: dbWorkflow.id,
       name: dbWorkflow.name,
@@ -190,7 +178,7 @@ export class DatabaseService {
     };
   }
 
-  private static mapDatabaseToExecution(dbExecution: any): WorkflowExecution {
+  static mapDatabaseToExecution(dbExecution: any): WorkflowExecution {
     return {
       id: dbExecution.id,
       workflowId: dbExecution.workflow_id,

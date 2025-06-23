@@ -7,6 +7,7 @@ import { WorkflowInsights } from '../components/WorkflowInsights';
 import { ConfigurationModal } from '../components/ConfigurationModal';
 import { WebhookService } from '../services/WebhookService';
 import { DatabaseService } from '../services/DatabaseService';
+import { supabase } from '@/integrations/supabase/client';
 import { Settings, Activity, BarChart3, Zap, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -49,7 +50,102 @@ const Index = () => {
 
   useEffect(() => {
     loadDashboardData();
+    setupRealtimeSubscriptions();
+    
+    // Cleanup function
+    return () => {
+      supabase.removeAllChannels();
+    };
   }, []);
+
+  const setupRealtimeSubscriptions = () => {
+    console.log('Setting up real-time subscriptions...');
+    
+    // Subscribe to workflows changes
+    const workflowsChannel = supabase
+      .channel('workflows-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'workflows'
+        },
+        (payload) => {
+          console.log('Workflows real-time update:', payload);
+          handleWorkflowRealtimeUpdate(payload);
+        }
+      )
+      .subscribe();
+
+    // Subscribe to executions changes
+    const executionsChannel = supabase
+      .channel('executions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'workflow_executions'
+        },
+        (payload) => {
+          console.log('Executions real-time update:', payload);
+          handleExecutionRealtimeUpdate(payload);
+        }
+      )
+      .subscribe();
+  };
+
+  const handleWorkflowRealtimeUpdate = (payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    switch (eventType) {
+      case 'INSERT':
+        const newWorkflow = DatabaseService.mapDatabaseToWorkflow(newRecord);
+        setWorkflows(prev => [...prev, newWorkflow]);
+        setWorkflowOrder(prev => [...prev, newWorkflow.id]);
+        break;
+        
+      case 'UPDATE':
+        const updatedWorkflow = DatabaseService.mapDatabaseToWorkflow(newRecord);
+        setWorkflows(prev => prev.map(w => w.id === updatedWorkflow.id ? updatedWorkflow : w));
+        break;
+        
+      case 'DELETE':
+        const deletedId = oldRecord.id;
+        setWorkflows(prev => prev.filter(w => w.id !== deletedId));
+        setWorkflowOrder(prev => prev.filter(id => id !== deletedId));
+        // Also remove related executions from local state
+        setExecutions(prev => prev.filter(e => e.workflowId !== deletedId));
+        toast({
+          title: "Workflow Deleted",
+          description: `Workflow and all related data have been removed.`,
+          variant: "default"
+        });
+        break;
+    }
+  };
+
+  const handleExecutionRealtimeUpdate = (payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    switch (eventType) {
+      case 'INSERT':
+        const newExecution = DatabaseService.mapDatabaseToExecution(newRecord);
+        setExecutions(prev => [newExecution, ...prev]);
+        break;
+        
+      case 'UPDATE':
+        const updatedExecution = DatabaseService.mapDatabaseToExecution(newRecord);
+        setExecutions(prev => prev.map(e => e.id === updatedExecution.id ? updatedExecution : e));
+        break;
+        
+      case 'DELETE':
+        const deletedExecutionId = oldRecord.id;
+        setExecutions(prev => prev.filter(e => e.id !== deletedExecutionId));
+        break;
+    }
+  };
 
   const loadDashboardData = async () => {
     try {

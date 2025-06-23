@@ -109,6 +109,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_workflow_cascade: {
+        Args: { workflow_id_param: string }
+        Returns: undefined
+      }
       update_workflow_stats: {
         Args: { workflow_id_param: string }
         Returns: undefined
