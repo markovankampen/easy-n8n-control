@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { WorkflowPanel } from '../components/WorkflowPanel';
 import { StatusDisplay } from '../components/StatusDisplay';
 import { DataVisualization } from '../components/DataVisualization';
 import { ActivityLog } from '../components/ActivityLog';
+import { WorkflowInsights } from '../components/WorkflowInsights';
 import { ConfigurationModal } from '../components/ConfigurationModal';
 import { WebhookService } from '../services/WebhookService';
 import { DatabaseService } from '../services/DatabaseService';
-import { Settings, Activity, BarChart3, Zap } from 'lucide-react';
+import { Settings, Activity, BarChart3, Zap, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -40,7 +42,7 @@ const Index = () => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [executions, setExecutions] = useState<WorkflowExecution[]>([]);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [selectedTab, setSelectedTab] = useState<'control' | 'data' | 'activity'>('control');
+  const [selectedTab, setSelectedTab] = useState<'control' | 'data' | 'activity' | 'insights'>('control');
   const [loading, setLoading] = useState(true);
   const [runningWorkflows, setRunningWorkflows] = useState<Set<string>>(new Set());
   const [workflowOrder, setWorkflowOrder] = useState<string[]>([]);
@@ -349,6 +351,17 @@ const Index = () => {
               <Activity className="h-4 w-4" />
               <span>Activity Log</span>
             </button>
+            <button
+              onClick={() => setSelectedTab('insights')}
+              className={`${
+                selectedTab === 'insights'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
+            >
+              <TrendingUp className="h-4 w-4" />
+              <span>Insights</span>
+            </button>
           </nav>
         </div>
       </div>
@@ -371,6 +384,10 @@ const Index = () => {
         
         {selectedTab === 'activity' && (
           <ActivityLog executions={executions} />
+        )}
+        
+        {selectedTab === 'insights' && (
+          <WorkflowInsights executions={executions} />
         )}
       </main>
 
