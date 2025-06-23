@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -117,10 +118,10 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="space-y-1 flex-1">
-                  <CardTitle className="text-lg group-hover:rainbow-text transition-all duration-300 hover:scale-105">
+                  <CardTitle className="text-lg text-black font-semibold transition-all duration-300 hover:scale-105">
                     {workflow.name}
                   </CardTitle>
-                  <CardDescription className="text-sm group-hover:text-purple-600 transition-colors duration-300">
+                  <CardDescription className="text-sm text-gray-700 transition-colors duration-300">
                     {workflow.description}
                   </CardDescription>
                 </div>
@@ -134,26 +135,26 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
               {/* Workflow Stats */}
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="text-center p-2 bg-white/70 rounded-lg hover:bg-white hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer group/stat">
-                  <div className="font-semibold text-gray-900 group-hover/stat:text-purple-600 transition-colors duration-300">
+                  <div className="font-semibold text-black transition-colors duration-300">
                     {workflow.executionCount}
                   </div>
-                  <div className="text-gray-500 group-hover/stat:text-purple-500 transition-colors duration-300">
+                  <div className="text-gray-600 transition-colors duration-300">
                     Runs
                   </div>
                 </div>
                 <div className="text-center p-2 bg-white/70 rounded-lg hover:bg-white hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer group/stat">
-                  <div className="font-semibold text-gray-900 group-hover/stat:text-green-600 transition-colors duration-300">
+                  <div className="font-semibold text-black transition-colors duration-300">
                     {workflow.successRate}%
                   </div>
-                  <div className="text-gray-500 group-hover/stat:text-green-500 transition-colors duration-300">
+                  <div className="text-gray-600 transition-colors duration-300">
                     Success
                   </div>
                 </div>
                 <div className="text-center p-2 bg-white/70 rounded-lg hover:bg-white hover:scale-105 hover:shadow-md transition-all duration-300 cursor-pointer group/stat">
-                  <div className="font-semibold text-gray-900 group-hover/stat:text-blue-600 transition-colors duration-300">
+                  <div className="font-semibold text-black transition-colors duration-300">
                     {workflow.avgExecutionTime}ms
                   </div>
-                  <div className="text-gray-500 group-hover/stat:text-blue-500 transition-colors duration-300">
+                  <div className="text-gray-600 transition-colors duration-300">
                     Avg Time
                   </div>
                 </div>
@@ -161,7 +162,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
 
               {/* Last Run */}
               {workflow.lastRun && (
-                <div className="text-xs text-gray-500 text-center hover:text-purple-600 transition-colors duration-300 animate-slide-up" style={{ animationDelay: `${index * 0.1 + 0.3}s` }}>
+                <div className="text-xs text-gray-700 text-center transition-colors duration-300 animate-slide-up" style={{ animationDelay: `${index * 0.1 + 0.3}s` }}>
                   Last run: {workflow.lastRun.toLocaleString()}
                 </div>
               )}
@@ -214,9 +215,9 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
               </div>
 
               {!workflow.webhookUrl && (
-                <div className="text-xs text-amber-600 bg-gradient-to-r from-amber-50 to-yellow-50 p-2 rounded flex items-center hover:bg-gradient-to-r hover:from-amber-100 hover:to-yellow-100 transition-all duration-300 animate-slide-up" style={{ animationDelay: `${index * 0.1 + 0.5}s` }}>
+                <div className="text-xs text-amber-700 bg-gradient-to-r from-amber-50 to-yellow-50 p-2 rounded flex items-center hover:bg-gradient-to-r hover:from-amber-100 hover:to-yellow-100 transition-all duration-300 animate-slide-up" style={{ animationDelay: `${index * 0.1 + 0.5}s` }}>
                   <Settings className="h-3 w-3 mr-1 hover:rotate-45 transition-transform duration-300" />
-                  <span className="hover:text-amber-700 transition-colors duration-300">
+                  <span className="transition-colors duration-300">
                     Webhook URL not configured
                   </span>
                 </div>
