@@ -123,7 +123,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                   <CardTitle className="text-lg text-black font-semibold transition-all duration-300 hover:scale-105">
                     {workflow.name}
                   </CardTitle>
-                  <CardDescription className="text-sm text-black transition-colors duration-300">
+                  <CardDescription className="text-sm text-black/80 transition-colors duration-300">
                     {workflow.description}
                   </CardDescription>
                 </div>
@@ -140,7 +140,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                   <div className="font-semibold text-black transition-colors duration-300">
                     {workflow.executionCount}
                   </div>
-                  <div className="text-black transition-colors duration-300">
+                  <div className="text-black/80 transition-colors duration-300">
                     Runs
                   </div>
                 </div>
@@ -148,7 +148,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                   <div className="font-semibold text-black transition-colors duration-300">
                     {workflow.successRate}%
                   </div>
-                  <div className="text-black transition-colors duration-300">
+                  <div className="text-black/80 transition-colors duration-300">
                     Success
                   </div>
                 </div>
@@ -156,7 +156,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                   <div className="font-semibold text-black transition-colors duration-300">
                     {workflow.avgExecutionTime}ms
                   </div>
-                  <div className="text-black transition-colors duration-300">
+                  <div className="text-black/80 transition-colors duration-300">
                     Avg Time
                   </div>
                 </div>
@@ -164,7 +164,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
 
               {/* Last Run */}
               {workflow.lastRun && (
-                <div className="text-xs text-black text-center transition-colors duration-300 animate-slide-up" style={{ animationDelay: `${index * 0.1 + 0.3}s` }}>
+                <div className="text-xs text-black/80 text-center transition-colors duration-300 animate-slide-up" style={{ animationDelay: `${index * 0.1 + 0.3}s` }}>
                   Last run: {workflow.lastRun.toLocaleString()}
                 </div>
               )}
@@ -186,17 +186,17 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                     <DialogContent className="bg-white">
                       <DialogHeader>
                         <DialogTitle className="text-black">{workflow.name}</DialogTitle>
-                        <DialogDescription className="text-black">
+                        <DialogDescription className="text-black/80">
                           This workflow requires input parameters. Please fill out the form below.
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
                         {renderInputForm(workflow)}
                         <div className="flex justify-end space-x-2">
-                          <Button variant="outline" onClick={() => setInputDialogOpen(null)} className="text-black">
+                          <Button variant="outline" onClick={() => setInputDialogOpen(null)} className="text-black border-black/20 hover:bg-black/5">
                             Cancel
                           </Button>
-                          <Button onClick={() => handleSubmitWithInput(workflow.id)}>
+                          <Button onClick={() => handleSubmitWithInput(workflow.id)} className="bg-purple-500 hover:bg-purple-600 text-white">
                             <Play className="h-4 w-4 mr-2" />
                             Run Workflow
                           </Button>
