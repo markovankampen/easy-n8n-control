@@ -1,6 +1,4 @@
 
-import { supabase } from "@/integrations/supabase/client";
-
 export class WebhookService {
   static async triggerWorkflow(webhookUrl: string, params?: any): Promise<any> {
     if (!webhookUrl) {
@@ -8,30 +6,57 @@ export class WebhookService {
     }
 
     try {
-      console.log('Triggering workflow via proxy:', { webhookUrl, params });
+      console.log('Triggering workflow:', { webhookUrl, params });
       
-      const { data, error } = await supabase.functions.invoke('webhook-proxy', {
-        body: {
-          webhookUrl,
-          params: params || {},
-          method: 'POST'
-        }
+      // First try POST request
+      let response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params || {}),
       });
 
-      if (error) {
-        console.error('Proxy function error:', error);
-        throw new Error(`Proxy error: ${error.message}`);
+      // If we get a 404 with the specific message about POST not being registered, try GET
+      if (!response.ok && response.status === 404) {
+        const errorText = await response.text();
+        if (errorText.includes('not registered for POST requests')) {
+          console.log('POST not supported, trying GET request');
+          
+          // Convert params to URL search params for GET request
+          const urlParams = new URLSearchParams();
+          if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+              urlParams.append(key, String(value));
+            });
+          }
+          
+          const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
+          
+          response = await fetch(getUrl, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        }
       }
 
-      if (data?.error) {
-        console.error('Webhook error from proxy:', data.error);
-        throw new Error(data.error);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      console.log('Workflow response via proxy:', data);
-      return data;
+      const result = await response.json();
+      console.log('Workflow response:', result);
+      
+      return result;
     } catch (error) {
-      console.error('Webhook service error:', error);
+      console.error('Webhook error:', error);
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Network error: Unable to reach webhook URL. Please check the URL and your internet connection.');
+      }
+      
       throw error;
     }
   }
@@ -42,7 +67,7 @@ export class WebhookService {
     }
 
     try {
-      console.log('Testing webhook connection via proxy:', webhookUrl);
+      console.log('Testing webhook connection:', webhookUrl);
       
       // Send a test payload
       const testPayload = {
@@ -51,42 +76,42 @@ export class WebhookService {
         message: 'Connection test from N8N Dashboard'
       };
 
-      const { data, error } = await supabase.functions.invoke('webhook-proxy', {
-        body: {
-          webhookUrl,
-          params: testPayload,
-          method: 'POST'
-        }
+      // First try POST
+      let response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testPayload),
       });
 
-      if (error) {
-        console.error('Test connection proxy error:', error);
-        throw new Error(`Test failed: ${error.message}`);
-      }
-
-      if (data?.error) {
-        // If POST fails, try GET
-        console.log('POST test failed, trying GET request');
-        
-        const { data: getData, error: getError } = await supabase.functions.invoke('webhook-proxy', {
-          body: {
-            webhookUrl,
-            params: { test: 'true', timestamp: new Date().toISOString() },
-            method: 'GET'
-          }
-        });
-
-        if (getError || getData?.error) {
-          console.error('GET test also failed:', getError || getData?.error);
-          throw new Error(getData?.error || getError?.message || 'Connection test failed');
+      // If POST fails with 404, try GET
+      if (!response.ok && response.status === 404) {
+        const errorText = await response.text();
+        if (errorText.includes('not registered for POST requests')) {
+          console.log('POST not supported for test, trying GET request');
+          
+          response = await fetch(`${webhookUrl}?test=true&timestamp=${encodeURIComponent(new Date().toISOString())}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
         }
       }
 
-      console.log('Test connection successful via proxy');
+      // Accept any response code as long as the request went through
+      console.log('Test response status:', response.status);
+      
       return true;
     } catch (error) {
       console.error('Connection test failed:', error);
-      throw error;
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Connection failed: Unable to reach the webhook URL. Please verify the URL is correct and accessible.');
+      }
+      
+      throw new Error(`Connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
