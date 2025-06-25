@@ -7,7 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Workflow } from '../pages/Index';
-import { Play, Settings, AlertCircle, CheckCircle, Loader2, Clock } from 'lucide-react';
+import { Play, Settings, AlertCircle, CheckCircle, Loader2, Clock, HelpCircle } from 'lucide-react';
+import { WebhookService } from '../services/WebhookService';
+import { useToast } from '@/hooks/use-toast';
 
 interface WorkflowPanelProps {
   workflows: Workflow[];
@@ -20,6 +22,8 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
 }) => {
   const [inputDialogOpen, setInputDialogOpen] = useState<string | null>(null);
   const [inputValues, setInputValues] = useState<Record<string, any>>({});
+  const [testingConnection, setTestingConnection] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const getStatusIcon = (status: Workflow['status']) => {
     switch (status) {
@@ -62,6 +66,45 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
     setInputValues({});
   };
 
+  const handleTestConnection = async (workflow: Workflow) => {
+    if (!workflow.webhookUrl) {
+      toast({
+        title: "No Webhook URL",
+        description: "Please configure the webhook URL first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setTestingConnection(workflow.id);
+    
+    try {
+      const isConnected = await WebhookService.testConnection(workflow.webhookUrl);
+      
+      if (isConnected) {
+        toast({
+          title: "Connection Successful",
+          description: "The webhook URL is reachable and properly configured.",
+        });
+      } else {
+        toast({
+          title: "Connection Issues",
+          description: "The webhook responded but may have configuration issues.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      const errorMessage = WebhookService.formatWebhookError(error);
+      toast({
+        title: "Connection Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setTestingConnection(null);
+    }
+  };
+
   const renderInputForm = (workflow: Workflow) => {
     if (!workflow.inputSchema) return null;
 
@@ -69,7 +112,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
       <div className="space-y-4">
         {Object.entries(workflow.inputSchema).map(([key, field]: [string, any]) => (
           <div key={key} className="space-y-2">
-            <Label htmlFor={key}>
+            <Label htmlFor={key} className="text-gray-900">
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </Label>
@@ -80,6 +123,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                 onChange={(e) => setInputValues({ ...inputValues, [key]: e.target.value })}
                 placeholder={field.placeholder}
                 required={field.required}
+                className="text-gray-900"
               />
             ) : field.type === 'textarea' ? (
               <Textarea
@@ -89,6 +133,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                 placeholder={field.placeholder}
                 required={field.required}
                 rows={3}
+                className="text-gray-900"
               />
             ) : null}
           </div>
@@ -110,8 +155,8 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <CardTitle className="text-lg">{workflow.name}</CardTitle>
-                  <CardDescription className="text-sm">{workflow.description}</CardDescription>
+                  <CardTitle className="text-lg text-gray-900">{workflow.name}</CardTitle>
+                  <CardDescription className="text-sm text-gray-600">{workflow.description}</CardDescription>
                 </div>
                 {getStatusIcon(workflow.status)}
               </div>
@@ -122,21 +167,21 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="text-center p-2 bg-white/50 rounded">
                   <div className="font-semibold text-gray-900">{workflow.executionCount}</div>
-                  <div className="text-gray-500">Runs</div>
+                  <div className="text-gray-600">Runs</div>
                 </div>
                 <div className="text-center p-2 bg-white/50 rounded">
                   <div className="font-semibold text-gray-900">{workflow.successRate}%</div>
-                  <div className="text-gray-500">Success</div>
+                  <div className="text-gray-600">Success</div>
                 </div>
                 <div className="text-center p-2 bg-white/50 rounded">
                   <div className="font-semibold text-gray-900">{workflow.avgExecutionTime}ms</div>
-                  <div className="text-gray-500">Avg Time</div>
+                  <div className="text-gray-600">Avg Time</div>
                 </div>
               </div>
 
               {/* Last Run */}
               {workflow.lastRun && (
-                <div className="text-xs text-gray-500 text-center">
+                <div className="text-xs text-gray-600 text-center">
                   Last run: {workflow.lastRun.toLocaleString()}
                 </div>
               )}
@@ -157,8 +202,8 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>{workflow.name}</DialogTitle>
-                        <DialogDescription>
+                        <DialogTitle className="text-gray-900">{workflow.name}</DialogTitle>
+                        <DialogDescription className="text-gray-600">
                           This workflow requires input parameters. Please fill out the form below.
                         </DialogDescription>
                       </DialogHeader>
@@ -186,12 +231,41 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                     {workflow.status === 'running' ? 'Running...' : 'Run Workflow'}
                   </Button>
                 )}
+
+                {/* Test Connection Button */}
+                {workflow.webhookUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={testingConnection === workflow.id}
+                    onClick={() => handleTestConnection(workflow)}
+                    className="px-3"
+                  >
+                    {testingConnection === workflow.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <HelpCircle className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
               </div>
 
               {!workflow.webhookUrl && (
                 <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded flex items-center">
                   <Settings className="h-3 w-3 mr-1" />
                   Webhook URL not configured
+                </div>
+              )}
+
+              {/* Troubleshooting Tips */}
+              {workflow.webhookUrl && (
+                <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                  <div className="font-medium mb-1">Troubleshooting Tips:</div>
+                  <div className="space-y-1 text-blue-700">
+                    <div>• Ensure N8N workflow is activated</div>
+                    <div>• Execute workflow manually in N8N first</div>
+                    <div>• Use "Test Connection" to verify setup</div>
+                  </div>
                 </div>
               )}
             </CardContent>

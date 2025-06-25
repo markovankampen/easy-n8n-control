@@ -1,3 +1,4 @@
+
 export class WebhookService {
   static async triggerWorkflow(webhookUrl: string, params?: any): Promise<any> {
     if (!webhookUrl) {
@@ -23,7 +24,25 @@ export class WebhookService {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Proxy error:', errorData);
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        
+        // Provide more specific error messages based on the response
+        let errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        
+        if (response.status === 404) {
+          errorMessage = 'N8N Webhook not found (404). Please ensure:\n\n' +
+            '1. Your N8N workflow is ACTIVATED\n' +
+            '2. The workflow has been executed at least once manually\n' +
+            '3. The webhook URL is correct\n' +
+            '4. For complex workflows: Execute the workflow manually in N8N first';
+        } else if (response.status >= 500) {
+          errorMessage = 'N8N Server Error (500+). This usually means:\n\n' +
+            '1. N8N server is experiencing issues\n' +
+            '2. Workflow has configuration problems\n' +
+            '3. Timeout occurred during execution\n' +
+            '4. Check N8N logs for more details';
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -64,6 +83,10 @@ export class WebhookService {
 
       console.log('Test response status:', response.status);
       
+      if (response.status === 404) {
+        throw new Error('Webhook not found (404). Please activate your N8N workflow and execute it manually once.');
+      }
+      
       return response.status < 500; // Accept 200s, 300s, 400s but not 500s
     } catch (error) {
       console.error('Connection test failed:', error);
@@ -84,16 +107,21 @@ export class WebhookService {
 
   static formatWebhookError(error: any): string {
     if (error instanceof Error) {
-      if (error.message.includes('not registered')) {
-        return 'N8N webhook not ready. For complex workflows: 1) Activate the workflow, 2) Execute it once manually, 3) Then try triggering from dashboard.';
-      }
-      
-      if (error.message.includes('not found')) {
-        return 'Webhook not found. For complex workflows, ensure the workflow is both activated AND has been executed at least once.';
+      if (error.message.includes('not registered') || error.message.includes('404')) {
+        return 'N8N webhook not ready. To fix this:\n\n' +
+          '1. Go to your N8N workflow\n' +
+          '2. Make sure it\'s ACTIVATED (toggle switch on)\n' +
+          '3. Execute the workflow manually once (click "Test workflow")\n' +
+          '4. Then try triggering from dashboard again\n\n' +
+          'For complex workflows, manual execution is required to register the webhook.';
       }
       
       if (error.message.includes('500')) {
-        return 'N8N server error: Complex workflows may have execution timeouts or node configuration issues.';
+        return 'N8N server error. Possible causes:\n\n' +
+          '1. Workflow has configuration issues\n' +
+          '2. N8N server is overloaded or down\n' +
+          '3. Execution timeout occurred\n' +
+          '4. Check N8N server logs for details';
       }
       
       return error.message;
