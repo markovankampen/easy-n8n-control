@@ -5,10 +5,10 @@ import { DataVisualization } from '../components/DataVisualization';
 import { ActivityLog } from '../components/ActivityLog';
 import { WorkflowInsights } from '../components/WorkflowInsights';
 import { ConfigurationModal } from '../components/ConfigurationModal';
-import { WebhookService } from '../services/WebhookService';
+import { MCPService } from '../services/MCPService';
 import { DatabaseService } from '../services/DatabaseService';
 import { supabase } from '@/integrations/supabase/client';
-import { Settings, Activity, BarChart3, Zap, TrendingUp } from 'lucide-react';
+import { Settings, Activity, BarChart3, Zap, TrendingUp, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -189,13 +189,13 @@ const Index = () => {
     if (!workflow.webhookUrl) {
       toast({
         title: "Configuration Required",
-        description: "Please configure the webhook URL for this workflow.",
+        description: "Please configure the MCP server URL for this workflow.",
         variant: "destructive"
       });
       return;
     }
 
-    console.log('Starting workflow execution:', { workflowId, workflowName: workflow.name });
+    console.log('Starting workflow execution via MCP server:', { workflowId, workflowName: workflow.name });
 
     // Set workflow as running in local state only
     setRunningWorkflows(prev => new Set(prev).add(workflowId));
@@ -219,13 +219,13 @@ const Index = () => {
 
       toast({
         title: "Workflow Started",
-        description: `${workflow.name} is now running...`
+        description: `${workflow.name} is now running via MCP server...`
       });
 
-      console.log('Executing workflow:', { workflowId, executionId, webhookUrl: workflow.webhookUrl });
+      console.log('Executing workflow via MCP server:', { workflowId, executionId, mcpServerUrl: workflow.webhookUrl });
 
       // Execute workflow
-      const result = await WebhookService.triggerWorkflow(workflow.webhookUrl, params);
+      const result = await MCPService.triggerWorkflow(workflow.webhookUrl, params);
       
       // Update execution with success
       const completedExecution = {
@@ -236,11 +236,11 @@ const Index = () => {
         result
       };
       
-      console.log('Workflow completed successfully:', { workflowId, executionId });
+      console.log('Workflow completed successfully via MCP server:', { workflowId, executionId });
       await handleWorkflowComplete(workflowId, completedExecution);
       
     } catch (error) {
-      console.error('Workflow failed:', { workflowId, executionId, error });
+      console.error('Workflow failed via MCP server:', { workflowId, executionId, error });
       // Update execution with failure
       const failedExecution = {
         ...execution,
@@ -389,11 +389,11 @@ const Index = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <div className="bg-blue-600 p-2 rounded-lg">
-                <Zap className="h-6 w-6 text-white" />
+                <Server className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">N8N Workflow Dashboard</h1>
-                <p className="text-sm text-gray-500">Control and monitor your automation workflows</p>
+                <h1 className="text-xl font-bold text-gray-900">MCP Workflow Dashboard</h1>
+                <p className="text-sm text-gray-500">Control and monitor your automation workflows via MCP servers</p>
               </div>
             </div>
             
