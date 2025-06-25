@@ -23,11 +23,11 @@ serve(async (req) => {
       );
     }
 
-    const { webhookUrl, params, isComplexWorkflow, isTest, isMCPServer } = await req.json();
+    const { webhookUrl, params, isComplexWorkflow } = await req.json();
 
     if (!webhookUrl) {
       return new Response(
-        JSON.stringify({ error: 'Server URL is required' }),
+        JSON.stringify({ error: 'Webhook URL is required' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -35,88 +35,54 @@ serve(async (req) => {
       );
     }
 
-    const serverType = isMCPServer ? 'MCP server' : 'N8N webhook';
-    console.log(`Proxying request to ${serverType}:`, webhookUrl);
+    console.log('Proxying webhook request to:', webhookUrl);
     console.log('With params:', params);
     console.log('Complex workflow mode:', isComplexWorkflow);
-    console.log('Is test:', isTest);
-    console.log('Is MCP server:', isMCPServer);
 
-    // Set timeout based on workflow type and server type
-    let timeout;
-    if (isTest) {
-      timeout = 10000; // 10s for tests
-    } else if (isMCPServer) {
-      timeout = isComplexWorkflow ? 12000 : 20000; // MCP servers: 12s for complex, 20s for simple
-    } else {
-      timeout = isComplexWorkflow ? 15000 : 30000; // N8N webhooks: 15s for complex, 30s for simple
-    }
-    
-    console.log('Timeout:', timeout);
-
+    // For complex workflows, try different strategies
     let response;
     let lastError;
 
-    // Strategy 1: Try POST request first with proper payload
+    // Strategy 1: Standard POST request
     try {
       console.log('Trying POST request...');
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-      const headers = {
-        'Content-Type': 'application/json',
-        'User-Agent': isMCPServer ? 'MCP-Dashboard-Client/1.0' : 'N8N-Dashboard-Trigger/1.0',
-      };
-
-      // Ensure we always send valid JSON payload
-      const payload = params || {};
-      console.log('Sending payload:', JSON.stringify(payload));
-
       response = await fetch(webhookUrl, {
         method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-        signal: controller.signal
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'N8N-Dashboard-Trigger/1.0',
+        },
+        body: JSON.stringify(params || {}),
       });
-
-      clearTimeout(timeoutId);
 
       if (response.ok) {
         console.log('POST request successful');
       } else {
-        console.log(`POST failed with ${response.status}: ${response.statusText}`);
         throw new Error(`POST failed with ${response.status}`);
       }
     } catch (error) {
       console.log('POST request failed:', error.message);
       lastError = error;
       
-      // Strategy 2: Try GET request as fallback (works for many endpoints)
+      // Strategy 2: GET request as fallback
       try {
         console.log('Trying GET request as fallback...');
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeout);
-        
         const urlParams = new URLSearchParams();
-        if (params && typeof params === 'object') {
+        if (params) {
           Object.entries(params).forEach(([key, value]) => {
             urlParams.append(key, String(value));
           });
         }
         
         const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
-        console.log('GET URL:', getUrl);
         
         response = await fetch(getUrl, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'User-Agent': isMCPServer ? 'MCP-Dashboard-Client/1.0' : 'N8N-Dashboard-Trigger/1.0',
+            'User-Agent': 'N8N-Dashboard-Trigger/1.0',
           },
-          signal: controller.signal
         });
-
-        clearTimeout(timeoutId);
 
         if (response.ok) {
           console.log('GET request successful');
@@ -125,25 +91,40 @@ serve(async (req) => {
         }
       } catch (getError) {
         console.log('GET request also failed:', getError.message);
-        response = null;
-        lastError = getError;
+        
+        // Strategy 3: For complex workflows, try with minimal payload
+        if (isComplexWorkflow) {
+          try {
+            console.log('Trying minimal payload for complex workflow...');
+            response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'N8N-Dashboard-Trigger/1.0',
+              },
+              body: JSON.stringify({ trigger: true, timestamp: Date.now() }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Minimal payload failed with ${response.status}`);
+            }
+            console.log('Minimal payload request successful');
+          } catch (minimalError) {
+            console.log('All strategies failed');
+            response = null;
+            lastError = minimalError;
+          }
+        } else {
+          response = null;
+        }
       }
     }
 
     if (!response || !response.ok) {
+      const errorText = response ? await response.text() : 'No response received';
       const status = response ? response.status : 500;
-      let errorText = 'No response received';
       
-      try {
-        if (response) {
-          errorText = await response.text();
-        }
-      } catch (textError) {
-        console.log('Could not read error response:', textError.message);
-        errorText = 'Could not read response body';
-      }
-      
-      console.error(`${serverType} failed:`, { 
+      console.error('N8N webhook failed after all strategies:', { 
         status, 
         statusText: response?.statusText || 'Unknown', 
         body: errorText,
@@ -153,24 +134,27 @@ serve(async (req) => {
       let errorMessage = `HTTP ${status}: ${response?.statusText || 'Unknown error'}`;
       
       if (status === 404) {
-        if (isMCPServer) {
-          errorMessage = 'MCP server endpoint not found. Please check that the server is running and the URL is correct.';
+        if (errorText.includes('not registered')) {
+          errorMessage = isComplexWorkflow 
+            ? 'Complex N8N workflow not registered. Please: 1) Activate the workflow, 2) Execute it manually once, 3) Then try again.'
+            : 'N8N webhook not registered. Please activate your workflow or click "Test workflow" in N8N first.';
         } else {
-          errorMessage = 'N8N webhook not registered. Please activate your workflow and execute it manually once in N8N.';
+          errorMessage = isComplexWorkflow
+            ? 'Complex workflow webhook not found. Ensure workflow is activated and has been executed at least once.'
+            : 'Webhook not found. Please check the URL and ensure your N8N workflow is activated.';
         }
       } else if (status >= 500) {
-        if (isMCPServer) {
-          errorMessage = 'MCP server error. Please check your server configuration and logs.';
-        } else {
-          errorMessage = 'N8N server error. Please check your workflow configuration.';
-        }
+        errorMessage = isComplexWorkflow
+          ? 'N8N server error. Complex workflows may have timeout or configuration issues. Check N8N logs.'
+          : 'N8N server error. Please check your workflow configuration.';
       }
       
       return new Response(
         JSON.stringify({ 
           error: errorMessage,
           details: errorText,
-          status: status
+          status: status,
+          isComplexWorkflow
         }),
         { 
           status: status, 
@@ -179,24 +163,19 @@ serve(async (req) => {
       );
     }
 
-    let result;
+    const result = await response.text();
+    console.log('N8N webhook success:', result);
+    
+    // Try to parse as JSON, fallback to text
+    let parsedResult;
     try {
-      const responseText = await response.text();
-      console.log(`${serverType} success response:`, responseText);
-      
-      // Try to parse as JSON, fallback to text
-      try {
-        result = JSON.parse(responseText);
-      } catch {
-        result = { message: responseText };
-      }
-    } catch (textError) {
-      console.log('Error reading response:', textError.message);
-      result = { message: 'Response received but could not be read' };
+      parsedResult = JSON.parse(result);
+    } catch {
+      parsedResult = { message: result };
     }
 
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify(parsedResult),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -204,14 +183,12 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Proxy error:', error);
+    console.error('Webhook proxy error:', error);
     
     let errorMessage = 'Unknown error occurred';
     if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        errorMessage = 'Request timed out. The server may be taking too long to respond.';
-      } else if (error.message.includes('fetch')) {
-        errorMessage = 'Failed to connect to server. Please check the URL and server availability.';
+      if (error.message.includes('fetch')) {
+        errorMessage = 'Failed to connect to N8N webhook. Please check the URL and N8N instance availability.';
       } else {
         errorMessage = error.message;
       }

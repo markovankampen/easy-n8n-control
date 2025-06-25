@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,8 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Workflow } from '../pages/Index';
-import { Play, Settings, AlertCircle, CheckCircle, Loader2, Clock, HelpCircle, Timer, Zap, Server } from 'lucide-react';
-import { MCPService } from '../services/MCPService';
+import { Play, Settings, AlertCircle, CheckCircle, Loader2, Clock, HelpCircle, Timer, Zap } from 'lucide-react';
+import { WebhookService } from '../services/WebhookService';
 import { useToast } from '@/hooks/use-toast';
 
 interface WorkflowPanelProps {
@@ -50,15 +51,17 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
     }
   };
 
+  // Determine if workflow is likely a long-running one based on execution time
   const isLikelyLongWorkflow = (workflow: Workflow) => {
-    return workflow.avgExecutionTime > 30000;
+    return workflow.avgExecutionTime > 30000; // More than 30 seconds
   };
 
   const handleTriggerWorkflow = (workflow: Workflow) => {
+    // Show warning for long workflows
     if (isLikelyLongWorkflow(workflow)) {
       toast({
         title: "Long Workflow Detected",
-        description: "This workflow may take time to complete. The MCP server will handle the execution.",
+        description: "This workflow may take time to complete. Consider using 'Respond to Webhook' node for immediate feedback.",
         duration: 5000
       });
     }
@@ -77,7 +80,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
     if (workflow && isLikelyLongWorkflow(workflow)) {
       toast({
         title: "Long Workflow Starting",
-        description: "This may take several minutes. The MCP server will handle the execution.",
+        description: "This may take several minutes. The workflow will continue running even if the dashboard shows a timeout.",
         duration: 6000
       });
     }
@@ -90,8 +93,8 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
   const handleTestConnection = async (workflow: Workflow) => {
     if (!workflow.webhookUrl) {
       toast({
-        title: "No MCP Server URL",
-        description: "Please configure the MCP server URL first.",
+        title: "No Webhook URL",
+        description: "Please configure the webhook URL first.",
         variant: "destructive"
       });
       return;
@@ -100,22 +103,22 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
     setTestingConnection(workflow.id);
     
     try {
-      const isConnected = await MCPService.testConnection(workflow.webhookUrl);
+      const isConnected = await WebhookService.testConnection(workflow.webhookUrl);
       
       if (isConnected) {
         toast({
           title: "Connection Successful",
-          description: "The MCP server is reachable and properly configured.",
+          description: "The webhook URL is reachable and properly configured.",
         });
       } else {
         toast({
           title: "Connection Issues",
-          description: "The MCP server responded but may have configuration issues.",
+          description: "The webhook responded but may have configuration issues.",
           variant: "destructive"
         });
       }
     } catch (error) {
-      const errorMessage = MCPService.formatMCPServerError(error);
+      const errorMessage = WebhookService.formatWebhookError(error);
       toast({
         title: "Connection Failed",
         description: errorMessage,
@@ -167,7 +170,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Workflow Controls</h2>
-        <p className="text-gray-600">Trigger and manage your automation workflows via MCP servers</p>
+        <p className="text-gray-600">Trigger and manage your automation workflows</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -178,7 +181,6 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-lg text-gray-900">{workflow.name}</CardTitle>
-                    <Server className="h-4 w-4 text-blue-500" />
                     {isLikelyLongWorkflow(workflow) && (
                       <Timer className="h-4 w-4 text-amber-500" />
                     )}
@@ -217,7 +219,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
               {isLikelyLongWorkflow(workflow) && (
                 <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded flex items-center">
                   <Timer className="h-3 w-3 mr-1" />
-                  Long workflow detected - MCP server will handle execution
+                  Long workflow detected - use "Respond to Webhook" node for best results
                 </div>
               )}
 
@@ -239,7 +241,6 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                       <DialogHeader>
                         <DialogTitle className="text-gray-900 flex items-center gap-2">
                           {workflow.name}
-                          <Server className="h-4 w-4 text-blue-500" />
                           {isLikelyLongWorkflow(workflow) && (
                             <Timer className="h-4 w-4 text-amber-500" />
                           )}
@@ -248,7 +249,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                           This workflow requires input parameters. Please fill out the form below.
                           {isLikelyLongWorkflow(workflow) && (
                             <div className="mt-2 text-amber-600">
-                              ⚠️ This appears to be a long-running workflow. The MCP server will handle execution.
+                              ⚠️ This appears to be a long-running workflow. It may continue executing even after timeout.
                             </div>
                           )}
                         </DialogDescription>
@@ -299,7 +300,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
               {!workflow.webhookUrl && (
                 <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded flex items-center">
                   <Settings className="h-3 w-3 mr-1" />
-                  MCP Server URL not configured
+                  Webhook URL not configured
                 </div>
               )}
 
@@ -307,15 +308,20 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
               {workflow.webhookUrl && (
                 <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
                   <div className="font-medium mb-1 flex items-center gap-1">
-                    <Server className="h-3 w-3" />
-                    MCP Server Setup:
+                    <Zap className="h-3 w-3" />
+                    {isLikelyLongWorkflow(workflow) ? 'Long Workflow Setup:' : 'Quick Setup Tips:'}
                   </div>
                   <div className="space-y-1 text-blue-700">
-                    <div>• Ensure MCP server is running and accessible</div>
-                    <div>• Verify server URL is correct</div>
-                    <div>• Use "Test Connection" to verify setup</div>
-                    {isLikelyLongWorkflow(workflow) && (
-                      <div>• Server will handle long-running workflows</div>
+                    <div>• Ensure N8N workflow is activated</div>
+                    <div>• Execute workflow manually in N8N first</div>
+                    {isLikelyLongWorkflow(workflow) ? (
+                      <>
+                        <div>• Add "Respond to Webhook" node after trigger</div>
+                        <div>• Set Response Mode to "Using 'Respond to Webhook' Node"</div>
+                        <div>• This prevents timeouts for long workflows</div>
+                      </>
+                    ) : (
+                      <div>• Use "Test Connection" to verify setup</div>
                     )}
                   </div>
                 </div>
@@ -327,9 +333,9 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
 
       {workflows.length === 0 && (
         <div className="text-center py-12">
-          <Server className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Workflows Configured</h3>
-          <p className="text-gray-500 mb-4">Get started by configuring your first MCP server workflow</p>
+          <p className="text-gray-500 mb-4">Get started by configuring your first workflow</p>
           <Button>Configure Workflows</Button>
         </div>
       )}
