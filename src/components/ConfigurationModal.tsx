@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,13 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { Workflow } from '../pages/Index';
-import { WebhookService } from '../services/WebhookService';
-import { Plus, Trash2, Edit, TestTube, CheckCircle, AlertCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { DatabaseService } from '../services/DatabaseService';
+import { MCPService } from '../services/MCPService';
+import { Plus, Trash2, Save, Server, TestTube, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface ConfigurationModalProps {
   isOpen: boolean;
@@ -27,122 +26,43 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   workflows,
   onUpdateWorkflows
 }) => {
-  const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null);
-  const [testingWebhook, setTestingWebhook] = useState<string | null>(null);
-  const [testResults, setTestResults] = useState<Record<string, 'success' | 'failed'>>({});
-  const [activeTab, setActiveTab] = useState<string>('workflows');
+  const [editedWorkflows, setEditedWorkflows] = useState<Workflow[]>([]);
+  const [testingConnections, setTestingConnections] = useState<Set<string>>(new Set());
+  const [connectionStatus, setConnectionStatus] = useState<Record<string, 'success' | 'failed' | null>>({});
   const { toast } = useToast();
 
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    webhookUrl: '',
-    requiresInput: false,
-    inputSchema: ''
-  });
+  useEffect(() => {
+    if (isOpen) {
+      setEditedWorkflows(workflows.map(w => ({ ...w })));
+      setConnectionStatus({});
+    }
+  }, [isOpen, workflows]);
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
+  const addWorkflow = () => {
+    const newWorkflow: Workflow = {
+      id: `wf-${Date.now()}`,
+      name: 'New Workflow',
+      description: 'Workflow description',
       webhookUrl: '',
+      status: 'idle',
+      executionCount: 0,
+      successRate: 100,
+      avgExecutionTime: 0,
       requiresInput: false,
-      inputSchema: ''
-    });
-    setEditingWorkflow(null);
-  };
-
-  const handleEditWorkflow = (workflow: Workflow) => {
-    setEditingWorkflow(workflow);
-    setFormData({
-      name: workflow.name,
-      description: workflow.description,
-      webhookUrl: workflow.webhookUrl,
-      requiresInput: workflow.requiresInput,
-      inputSchema: workflow.inputSchema ? JSON.stringify(workflow.inputSchema, null, 2) : ''
-    });
-    // Switch to the create/edit tab when editing
-    setActiveTab('create');
-  };
-
-  const handleSaveWorkflow = async () => {
-    if (!formData.name.trim() || !formData.description.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Name and description are required.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    let parsedInputSchema = null;
-    if (formData.requiresInput && formData.inputSchema.trim()) {
-      try {
-        parsedInputSchema = JSON.parse(formData.inputSchema);
-      } catch (error) {
-        toast({
-          title: "Invalid Input Schema",
-          description: "Please provide valid JSON for the input schema.",
-          variant: "destructive"
-        });
-        return;
-      }
-    }
-
-    const workflowData: Workflow = {
-      id: editingWorkflow?.id || `wf-${Date.now()}`,
-      name: formData.name.trim(),
-      description: formData.description.trim(),
-      webhookUrl: formData.webhookUrl.trim(),
-      requiresInput: formData.requiresInput,
-      inputSchema: parsedInputSchema,
-      status: editingWorkflow?.status || 'idle',
-      executionCount: editingWorkflow?.executionCount || 0,
-      successRate: editingWorkflow?.successRate || 100,
-      avgExecutionTime: editingWorkflow?.avgExecutionTime || 0,
-      lastRun: editingWorkflow?.lastRun
+      inputSchema: null
     };
-
-    try {
-      if (editingWorkflow) {
-        await DatabaseService.updateWorkflow(workflowData);
-      } else {
-        await DatabaseService.createWorkflow(workflowData);
-      }
-
-      // Reload workflows from database to get fresh data
-      const updatedWorkflows = await DatabaseService.getWorkflows();
-      onUpdateWorkflows(updatedWorkflows);
-      resetForm();
-      
-      toast({
-        title: editingWorkflow ? "Workflow Updated" : "Workflow Created",
-        description: `${workflowData.name} has been ${editingWorkflow ? 'updated' : 'created'} successfully.`
-      });
-
-      // Switch back to workflows tab after saving
-      setActiveTab('workflows');
-    } catch (error) {
-      console.error('Error saving workflow:', error);
-      toast({
-        title: "Error",
-        description: `Failed to ${editingWorkflow ? 'update' : 'create'} workflow.`,
-        variant: "destructive"
-      });
-    }
+    setEditedWorkflows([...editedWorkflows, newWorkflow]);
   };
 
-  const handleDeleteWorkflow = async (workflowId: string) => {
+  const removeWorkflow = async (workflowId: string) => {
     try {
       await DatabaseService.deleteWorkflow(workflowId);
-      
-      // Reload workflows from database to get fresh data
-      const updatedWorkflows = await DatabaseService.getWorkflows();
-      onUpdateWorkflows(updatedWorkflows);
+      const updatedWorkflows = editedWorkflows.filter(w => w.id !== workflowId);
+      setEditedWorkflows(updatedWorkflows);
       
       toast({
         title: "Workflow Deleted",
-        description: "The workflow and all its executions have been removed successfully."
+        description: "The workflow has been successfully removed.",
       });
     } catch (error) {
       console.error('Error deleting workflow:', error);
@@ -154,317 +74,293 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
     }
   };
 
-  const handleTestWebhook = async (webhookUrl: string, workflowId: string) => {
-    if (!webhookUrl.trim()) {
+  const updateWorkflow = (id: string, field: keyof Workflow, value: any) => {
+    setEditedWorkflows(prev => prev.map(w => 
+      w.id === id ? { ...w, [field]: value } : w
+    ));
+    
+    // Clear connection status when URL changes
+    if (field === 'webhookUrl') {
+      setConnectionStatus(prev => ({ ...prev, [id]: null }));
+    }
+  };
+
+  const testMCPConnection = async (workflow: Workflow) => {
+    if (!workflow.webhookUrl) {
       toast({
-        title: "Test Failed",
-        description: "Please enter a webhook URL to test.",
+        title: "No MCP Server URL",
+        description: "Please enter a MCP server URL first.",
         variant: "destructive"
       });
       return;
     }
 
-    setTestingWebhook(workflowId);
-    
-    try {
-      await WebhookService.testConnection(webhookUrl);
-      setTestResults({ ...testResults, [workflowId]: 'success' });
-      
+    if (!MCPService.validateMCPServerUrl(workflow.webhookUrl)) {
       toast({
-        title: "Connection Successful",
-        description: "The webhook URL is reachable and responding correctly."
+        title: "Invalid URL",
+        description: "Please enter a valid MCP server URL (http:// or https://).",
+        variant: "destructive"
       });
-    } catch (error) {
-      setTestResults({ ...testResults, [workflowId]: 'failed' });
+      return;
+    }
+
+    setTestingConnections(prev => new Set(prev).add(workflow.id));
+    setConnectionStatus(prev => ({ ...prev, [workflow.id]: null }));
+
+    try {
+      const isConnected = await MCPService.testConnection(workflow.webhookUrl);
       
+      if (isConnected) {
+        setConnectionStatus(prev => ({ ...prev, [workflow.id]: 'success' }));
+        toast({
+          title: "Connection Successful",
+          description: "MCP server is reachable and responding.",
+        });
+      } else {
+        setConnectionStatus(prev => ({ ...prev, [workflow.id]: 'failed' }));
+        toast({
+          title: "Connection Issues",
+          description: "MCP server responded but may have configuration issues.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      setConnectionStatus(prev => ({ ...prev, [workflow.id]: 'failed' }));
+      const errorMessage = MCPService.formatMCPServerError(error);
       toast({
         title: "Connection Failed",
-        description: error instanceof Error ? error.message : "Unable to reach the webhook URL.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
-      setTestingWebhook(null);
+      setTestingConnections(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(workflow.id);
+        return newSet;
+      });
     }
   };
 
-  const defaultInputSchema = {
-    message: {
-      type: "text",
-      label: "Message",
-      placeholder: "Enter your message here",
-      required: true
-    },
-    priority: {
-      type: "select",
-      label: "Priority",
-      options: ["low", "medium", "high"],
-      required: false
+  const handleInputSchemaChange = (id: string, schemaText: string) => {
+    try {
+      if (!schemaText.trim()) {
+        updateWorkflow(id, 'inputSchema', null);
+        return;
+      }
+      
+      const schema = JSON.parse(schemaText);
+      updateWorkflow(id, 'inputSchema', schema);
+    } catch (error) {
+      console.error('Invalid JSON schema:', error);
     }
+  };
+
+  const saveChanges = async () => {
+    try {
+      const updatedWorkflows = await Promise.all(
+        editedWorkflows.map(async (workflow) => {
+          return await DatabaseService.saveWorkflow(workflow);
+        })
+      );
+      
+      onUpdateWorkflows(updatedWorkflows);
+      onClose();
+    } catch (error) {
+      console.error('Error saving workflows:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save workflow configurations.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getConnectionStatusIcon = (workflowId: string) => {
+    if (testingConnections.has(workflowId)) {
+      return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />;
+    }
+    
+    const status = connectionStatus[workflowId];
+    if (status === 'success') {
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    } else if (status === 'failed') {
+      return <AlertCircle className="h-4 w-4 text-red-500" />;
+    }
+    
+    return null;
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Workflow Configuration</DialogTitle>
-          <DialogDescription>
-            Manage your workflows and configure webhook connections
+          <DialogTitle className="flex items-center gap-2 text-gray-900">
+            <Server className="h-5 w-5 text-blue-500" />
+            MCP Server Configuration
+          </DialogTitle>
+          <DialogDescription className="text-gray-600">
+            Configure your MCP servers and workflow settings. MCP servers handle the execution of your automation workflows.
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="workflows">Manage Workflows</TabsTrigger>
-            <TabsTrigger value="create">
-              {editingWorkflow ? 'Edit Workflow' : 'Create Workflow'}
-            </TabsTrigger>
-            <TabsTrigger value="help">Setup Guide</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="workflows" className="space-y-4">
-            <h3 className="text-lg font-semibold">Your Workflows</h3>
-            
-            <div className="space-y-4">
-              {workflows.map((workflow) => (
-                <Card key={workflow.id}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <CardTitle className="text-lg">{workflow.name}</CardTitle>
-                        <CardDescription>{workflow.description}</CardDescription>
-                        <div className="flex items-center space-x-2">
-                          {workflow.webhookUrl ? (
-                            <Badge variant="outline" className="text-green-600 border-green-600">
-                              Configured
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-amber-600 border-amber-600">
-                              Needs Setup
-                            </Badge>
-                          )}
-                          {workflow.requiresInput && (
-                            <Badge variant="secondary">Requires Input</Badge>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditWorkflow(workflow)}
-                          className="flex items-center space-x-1"
-                        >
-                          <Edit className="h-4 w-4" />
-                          <span>Edit</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteWorkflow(workflow.id)}
-                          className="text-red-600 hover:text-red-700 flex items-center space-x-1"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span>Delete</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  
-                  {workflow.webhookUrl && (
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-sm font-medium">Webhook URL</Label>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <Input
-                              value={workflow.webhookUrl}
-                              readOnly
-                              className="font-mono text-sm"
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleTestWebhook(workflow.webhookUrl, workflow.id)}
-                              disabled={testingWebhook === workflow.id}
-                            >
-                              {testingWebhook === workflow.id ? (
-                                <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-600 rounded-full" />
-                              ) : (
-                                <TestTube className="h-4 w-4" />
-                              )}
-                            </Button>
-                            {testResults[workflow.id] && (
-                              <div className="ml-2">
-                                {testResults[workflow.id] === 'success' ? (
-                                  <CheckCircle className="h-4 w-4 text-green-500" />
-                                ) : (
-                                  <AlertCircle className="h-4 w-4 text-red-500" />
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  )}
-                </Card>
-              ))}
-              
-              {workflows.length === 0 && (
-                <div className="text-center py-8">
-                  <Plus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Workflows Yet</h3>
-                  <p className="text-gray-500 mb-4">Create your first workflow to get started</p>
-                  <Button onClick={() => { resetForm(); setActiveTab('create'); }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Workflow
+        <div className="space-y-6">
+          {editedWorkflows.map((workflow) => (
+            <Card key={workflow.id} className="border border-gray-200">
+              <CardHeader className="pb-4">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                      <Server className="h-4 w-4 text-blue-500" />
+                      Workflow Configuration
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Configure MCP server connection and workflow parameters
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeWorkflow(workflow.id)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="create" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>{editingWorkflow ? 'Edit Workflow' : 'Create New Workflow'}</CardTitle>
-                <CardDescription>
-                  Configure workflow details and webhook connection
-                </CardDescription>
               </CardHeader>
+              
               <CardContent className="space-y-4">
+                {/* Basic Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Workflow Name</Label>
+                    <Label htmlFor={`name-${workflow.id}`} className="text-gray-900">Workflow Name</Label>
                     <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="e.g., Generate Report"
+                      id={`name-${workflow.id}`}
+                      value={workflow.name}
+                      onChange={(e) => updateWorkflow(workflow.id, 'name', e.target.value)}
+                      placeholder="Enter workflow name"
+                      className="text-gray-900"
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="webhookUrl">Webhook URL</Label>
+                    <Label htmlFor={`description-${workflow.id}`} className="text-gray-900">Description</Label>
                     <Input
-                      id="webhookUrl"
-                      value={formData.webhookUrl}
-                      onChange={(e) => setFormData({ ...formData, webhookUrl: e.target.value })}
-                      placeholder="https://your-n8n-instance.com/webhook/..."
+                      id={`description-${workflow.id}`}
+                      value={workflow.description}
+                      onChange={(e) => updateWorkflow(workflow.id, 'description', e.target.value)}
+                      placeholder="Enter workflow description"
+                      className="text-gray-900"
                     />
                   </div>
                 </div>
 
+                {/* MCP Server URL */}
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Describe what this workflow does"
-                    rows={2}
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="requiresInput"
-                    checked={formData.requiresInput}
-                    onCheckedChange={(checked) => setFormData({ ...formData, requiresInput: checked })}
-                  />
-                  <Label htmlFor="requiresInput">This workflow requires user input</Label>
-                </div>
-
-                {formData.requiresInput && (
-                  <div className="space-y-2">
-                    <Label htmlFor="inputSchema">Input Schema (JSON)</Label>
-                    <Textarea
-                      id="inputSchema"
-                      value={formData.inputSchema}
-                      onChange={(e) => setFormData({ ...formData, inputSchema: e.target.value })}
-                      placeholder={JSON.stringify(defaultInputSchema, null, 2)}
-                      rows={8}
-                      className="font-mono text-sm"
+                  <Label htmlFor={`url-${workflow.id}`} className="text-gray-900 flex items-center gap-2">
+                    <Server className="h-4 w-4 text-blue-500" />
+                    MCP Server URL
+                  </Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      id={`url-${workflow.id}`}
+                      value={workflow.webhookUrl}
+                      onChange={(e) => updateWorkflow(workflow.id, 'webhookUrl', e.target.value)}
+                      placeholder="https://your-mcp-server.com/endpoint"
+                      className="flex-1 text-gray-900"
                     />
-                    <p className="text-xs text-gray-500">
-                      Define the input fields your workflow needs. Supported types: text, textarea, select
-                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => testMCPConnection(workflow)}
+                      disabled={testingConnections.has(workflow.id) || !workflow.webhookUrl}
+                      className="flex items-center space-x-1"
+                    >
+                      <TestTube className="h-4 w-4" />
+                      <span>Test</span>
+                      {getConnectionStatusIcon(workflow.id)}
+                    </Button>
                   </div>
-                )}
-
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => { resetForm(); setActiveTab('workflows'); }}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSaveWorkflow}>
-                    {editingWorkflow ? 'Update Workflow' : 'Create Workflow'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="help" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>N8N Setup Guide</CardTitle>
-                <CardDescription>
-                  Step-by-step instructions for connecting your N8N workflows
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3">1. Create Webhook in N8N</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                      <p>• Open your N8N workflow editor</p>
-                      <p>• Add a "Webhook" node as the trigger</p>
-                      <p>• Set the HTTP method to "POST"</p>
-                      <p>• Copy the webhook URL from the node</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3">2. Configure Response</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                      <p>• Add a "Respond to Webhook" node at the end</p>
-                      <p>• Set response format to JSON</p>
-                      <p>• Include status and result data</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3">3. Test Connection</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                      <p>• Activate your N8N workflow</p>
-                      <p>• Paste the webhook URL in the configuration above</p>
-                      <p>• Use the test button to verify connectivity</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3">4. Input Parameters (Optional)</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                      <p>• Access input data via expressions: <code className="bg-white px-1 rounded">{'{{$json.parameterName}}'}</code></p>
-                      <p>• Example: <code className="bg-white px-1 rounded">{'{{$json.message}}'}</code> for message input</p>
-                      <p>• Configure input schema in JSON format above</p>
-                    </div>
-                  </div>
+                  <p className="text-xs text-gray-500">
+                    Enter the URL of your MCP server endpoint that will handle workflow execution.
+                  </p>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                  <h4 className="font-medium text-blue-900 mb-2">💡 Pro Tips</h4>
-                  <ul className="text-blue-800 space-y-1 text-sm">
-                    <li>• Use HTTPS for webhook URLs in production</li>
-                    <li>• Add error handling with "IF" nodes</li>
-                    <li>• Test with different input parameters</li>
-                    <li>• Monitor execution logs in N8N</li>
+                {/* Input Configuration */}
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={workflow.requiresInput}
+                      onCheckedChange={(checked) => updateWorkflow(workflow.id, 'requiresInput', checked)}
+                    />
+                    <Label className="text-gray-900">Workflow requires input parameters</Label>
+                  </div>
+
+                  {workflow.requiresInput && (
+                    <div className="space-y-2">
+                      <Label htmlFor={`schema-${workflow.id}`} className="text-gray-900">Input Schema (JSON)</Label>
+                      <Textarea
+                        id={`schema-${workflow.id}`}
+                        value={workflow.inputSchema ? JSON.stringify(workflow.inputSchema, null, 2) : ''}
+                        onChange={(e) => handleInputSchemaChange(workflow.id, e.target.value)}
+                        placeholder={`{
+  "field1": {
+    "type": "text",
+    "label": "Field Label",
+    "placeholder": "Enter value",
+    "required": true
+  }
+}`}
+                        rows={6}
+                        className="font-mono text-sm text-gray-900"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Define the input fields required by this workflow in JSON format.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* MCP Server Help */}
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2 flex items-center gap-2">
+                    <Server className="h-4 w-4" />
+                    MCP Server Setup Guide
+                  </h4>
+                  <ul className="text-xs text-blue-800 space-y-1">
+                    <li>• Ensure your MCP server is running and accessible</li>
+                    <li>• Verify the server URL is correct and includes the full endpoint path</li>
+                    <li>• Use the "Test" button to verify connectivity before saving</li>
+                    <li>• MCP servers should respond to both GET and POST requests</li>
+                    <li>• Check MCP server logs if connections fail</li>
                   </ul>
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          ))}
+
+          {/* Add New Workflow Button */}
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              onClick={addWorkflow}
+              className="flex items-center space-x-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add New Workflow</span>
+            </Button>
+          </div>
+
+          {/* Save Changes */}
+          <div className="flex justify-end space-x-2 pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={saveChanges} className="flex items-center space-x-2">
+              <Save className="h-4 w-4" />
+              <span>Save Changes</span>
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
