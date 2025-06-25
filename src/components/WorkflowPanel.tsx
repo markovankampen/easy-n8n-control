@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -181,7 +182,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-lg text-gray-900">{workflow.name}</CardTitle>
                     {isLikelyLongWorkflow(workflow) && (
-                      <Timer className="h-4 w-4 text-amber-500" title="Long-running workflow" />
+                      <Timer className="h-4 w-4 text-amber-500" />
                     )}
                   </div>
                   <CardDescription className="text-sm text-gray-600">{workflow.description}</CardDescription>
