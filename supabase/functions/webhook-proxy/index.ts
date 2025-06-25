@@ -57,7 +57,7 @@ serve(async (req) => {
     let response;
     let lastError;
 
-    // Strategy 1: Try POST request first
+    // Strategy 1: Try POST request first with proper payload
     try {
       console.log('Trying POST request...');
       const controller = new AbortController();
@@ -68,10 +68,14 @@ serve(async (req) => {
         'User-Agent': isMCPServer ? 'MCP-Dashboard-Client/1.0' : 'N8N-Dashboard-Trigger/1.0',
       };
 
+      // Ensure we always send valid JSON payload
+      const payload = params || {};
+      console.log('Sending payload:', JSON.stringify(payload));
+
       response = await fetch(webhookUrl, {
         method: 'POST',
         headers,
-        body: JSON.stringify(params || {}),
+        body: JSON.stringify(payload),
         signal: controller.signal
       });
 
@@ -80,6 +84,7 @@ serve(async (req) => {
       if (response.ok) {
         console.log('POST request successful');
       } else {
+        console.log(`POST failed with ${response.status}: ${response.statusText}`);
         throw new Error(`POST failed with ${response.status}`);
       }
     } catch (error) {
@@ -100,6 +105,7 @@ serve(async (req) => {
         }
         
         const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
+        console.log('GET URL:', getUrl);
         
         response = await fetch(getUrl, {
           method: 'GET',
@@ -125,8 +131,17 @@ serve(async (req) => {
     }
 
     if (!response || !response.ok) {
-      const errorText = response ? await response.text() : 'No response received';
       const status = response ? response.status : 500;
+      let errorText = 'No response received';
+      
+      try {
+        if (response) {
+          errorText = await response.text();
+        }
+      } catch (textError) {
+        console.log('Could not read error response:', textError.message);
+        errorText = 'Could not read response body';
+      }
       
       console.error(`${serverType} failed:`, { 
         status, 
@@ -164,19 +179,24 @@ serve(async (req) => {
       );
     }
 
-    const result = await response.text();
-    console.log(`${serverType} success:`, result);
-    
-    // Try to parse as JSON, fallback to text
-    let parsedResult;
+    let result;
     try {
-      parsedResult = JSON.parse(result);
-    } catch {
-      parsedResult = { message: result };
+      const responseText = await response.text();
+      console.log(`${serverType} success response:`, responseText);
+      
+      // Try to parse as JSON, fallback to text
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        result = { message: responseText };
+      }
+    } catch (textError) {
+      console.log('Error reading response:', textError.message);
+      result = { message: 'Response received but could not be read' };
     }
 
     return new Response(
-      JSON.stringify(parsedResult),
+      JSON.stringify(result),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

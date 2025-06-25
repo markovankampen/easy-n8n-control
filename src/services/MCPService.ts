@@ -15,6 +15,13 @@ export class MCPService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
       
+      // Ensure we always send proper payload to MCP server
+      const payload = params || {
+        trigger: 'dashboard',
+        timestamp: new Date().toISOString(),
+        source: 'mcp-workflow-dashboard'
+      };
+      
       const response = await fetch('https://jjvyyrlxlljryvaegegz.supabase.co/functions/v1/webhook-proxy', {
         method: 'POST',
         headers: {
@@ -23,7 +30,7 @@ export class MCPService {
         },
         body: JSON.stringify({ 
           webhookUrl: mcpServerUrl, 
-          params,
+          params: payload,
           isComplexWorkflow: isComplex,
           isMCPServer: true
         }),
@@ -101,7 +108,7 @@ export class MCPService {
       const testPayload = {
         test: true,
         timestamp: new Date().toISOString(),
-        message: 'Connection test from N8N Dashboard'
+        message: 'Connection test from MCP Dashboard'
       };
 
       const controller = new AbortController();
