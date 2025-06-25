@@ -39,8 +39,8 @@ serve(async (req) => {
     console.log('With params:', params);
     console.log('Complex workflow mode:', isComplexWorkflow);
 
-    // For complex workflows, use shorter timeout and expect immediate response
-    const timeoutMs = isComplexWorkflow ? 5000 : 15000; // 5s for complex, 15s for simple
+    // Use more reasonable timeouts - 10s for complex, 18s for simple
+    const timeoutMs = isComplexWorkflow ? 10000 : 18000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -67,9 +67,10 @@ serve(async (req) => {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
         
         if (response.status === 404) {
-          errorMessage = isComplexWorkflow 
-            ? 'Complex workflow webhook not found. Ensure: 1) Workflow is ACTIVATED, 2) Has been executed manually once, 3) Uses "Respond to Webhook" node for immediate response.'
-            : 'Webhook not found. Please activate your N8N workflow and execute it manually once.';
+          errorMessage = 'N8N webhook not found (404). Please ensure:\n\n' +
+            '1. Your N8N workflow is ACTIVATED\n' +
+            '2. The workflow has been executed at least once manually\n' +
+            '3. The webhook URL is correct';
         } else if (response.status >= 500) {
           errorMessage = 'N8N server error. Check your workflow configuration and N8N server logs.';
         }
@@ -98,13 +99,13 @@ serve(async (req) => {
       } catch {
         parsedResult = { 
           message: result || 'Workflow triggered successfully',
-          status: 'started',
+          status: 'success',
           timestamp: new Date().toISOString()
         };
       }
 
-      // For complex workflows, always indicate successful start
-      if (isComplexWorkflow) {
+      // For complex workflows, ensure we indicate successful start
+      if (isComplexWorkflow && !parsedResult.status) {
         parsedResult = {
           ...parsedResult,
           status: 'started',
@@ -145,7 +146,7 @@ serve(async (req) => {
           // For simple workflows, timeout indicates a problem
           return new Response(
             JSON.stringify({ 
-              error: 'Simple workflow timed out - this may indicate a configuration issue',
+              error: 'Workflow timed out - this may indicate a configuration issue',
               suggestion: 'Check if workflow is properly activated and responding',
               timeout: timeoutMs
             }),

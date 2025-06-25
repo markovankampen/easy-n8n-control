@@ -1,4 +1,3 @@
-
 export class WebhookService {
   static async triggerWorkflow(webhookUrl: string, params?: any): Promise<any> {
     if (!webhookUrl) {
@@ -8,13 +7,13 @@ export class WebhookService {
     try {
       console.log('Triggering workflow via proxy:', { webhookUrl, params });
       
-      // Detect if this is likely a complex workflow based on URL patterns
+      // More conservative detection of complex workflows
       const isComplexWorkflow = this.isLikelyComplexWorkflow(webhookUrl);
       
       console.log('Detected workflow type:', isComplexWorkflow ? 'complex' : 'simple');
       
-      // Use appropriate timeout based on workflow complexity
-      const timeoutMs = isComplexWorkflow ? 8000 : 15000; // 8s for complex, 15s for simple
+      // Use more reasonable timeouts - 12s for complex, 20s for simple
+      const timeoutMs = isComplexWorkflow ? 12000 : 20000;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       
@@ -41,17 +40,11 @@ export class WebhookService {
         let errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
         
         if (response.status === 404) {
-          errorMessage = isComplexWorkflow 
-            ? 'Complex N8N workflow not found (404). Please ensure:\n\n' +
-              '1. Your N8N workflow is ACTIVATED\n' +
-              '2. The workflow has been executed at least once manually\n' +
-              '3. For complex workflows: Add "Respond to Webhook" node immediately after the webhook trigger\n' +
-              '4. Set Response Mode to "Using \'Respond to Webhook\' Node"\n' +
-              '5. The "Respond to Webhook" node should return a simple success message'
-            : 'N8N Webhook not found (404). Please ensure:\n\n' +
-              '1. Your N8N workflow is ACTIVATED\n' +
-              '2. The workflow has been executed at least once manually\n' +
-              '3. The webhook URL is correct';
+          errorMessage = 'N8N Webhook not found (404). Please ensure:\n\n' +
+            '1. Your N8N workflow is ACTIVATED\n' +
+            '2. The workflow has been executed at least once manually\n' +
+            '3. The webhook URL is correct\n' +
+            '4. For complex workflows: Add "Respond to Webhook" node immediately after the webhook trigger';
         } else if (response.status >= 500) {
           errorMessage = 'N8N Server Error (500+). This usually means:\n\n' +
             '1. N8N server is experiencing issues\n' +
@@ -110,7 +103,7 @@ export class WebhookService {
 
       // Use shorter timeout for connection tests
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
 
       const response = await fetch('https://jjvyyrlxlljryvaegegz.supabase.co/functions/v1/webhook-proxy', {
         method: 'POST',
@@ -156,22 +149,18 @@ export class WebhookService {
   }
 
   static isLikelyComplexWorkflow(webhookUrl: string): boolean {
-    // This is a heuristic - in practice, you might want to let users configure this
-    // or detect it based on workflow metadata
-    
-    // For now, we'll assume workflows with certain patterns are complex
-    // You could enhance this by:
-    // 1. Checking if the webhook URL contains certain keywords
-    // 2. Looking at execution history
-    // 3. Having users explicitly mark workflows as complex
+    // Much more conservative detection of complex workflows
+    // Only consider workflows complex if they have very specific indicators
     
     const url = webhookUrl.toLowerCase();
     
-    // Keywords that might indicate complex workflows
+    // Very specific keywords that strongly indicate complex workflows
     const complexIndicators = [
-      'chain', 'flow', 'process', 'pipeline', 'complex', 'multi', 'sequence'
+      'long-chain', 'multi-step', 'batch-process', 'async-flow', 'background-job'
     ];
     
+    // Only mark as complex if URL explicitly contains these specific terms
+    // This prevents false positives and overly aggressive timeout reduction
     return complexIndicators.some(indicator => url.includes(indicator));
   }
 
