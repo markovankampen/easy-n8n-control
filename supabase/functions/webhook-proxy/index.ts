@@ -39,148 +39,126 @@ serve(async (req) => {
     console.log('With params:', params);
     console.log('Complex workflow mode:', isComplexWorkflow);
 
-    // For complex workflows, try different strategies
-    let response;
-    let lastError;
+    // For complex workflows, use shorter timeout and expect immediate response
+    const timeoutMs = isComplexWorkflow ? 5000 : 15000; // 5s for complex, 15s for simple
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    // Strategy 1: Standard POST request
     try {
-      console.log('Trying POST request...');
-      response = await fetch(webhookUrl, {
+      console.log(`Using ${timeoutMs}ms timeout for ${isComplexWorkflow ? 'complex' : 'simple'} workflow`);
+      
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'N8N-Dashboard-Trigger/1.0',
+          'User-Agent': 'N8N-Dashboard-Trigger/2.0',
+          'Accept': 'application/json',
         },
         body: JSON.stringify(params || {}),
+        signal: controller.signal
       });
 
-      if (response.ok) {
-        console.log('POST request successful');
-      } else {
-        throw new Error(`POST failed with ${response.status}`);
-      }
-    } catch (error) {
-      console.log('POST request failed:', error.message);
-      lastError = error;
-      
-      // Strategy 2: GET request as fallback
-      try {
-        console.log('Trying GET request as fallback...');
-        const urlParams = new URLSearchParams();
-        if (params) {
-          Object.entries(params).forEach(([key, value]) => {
-            urlParams.append(key, String(value));
-          });
-        }
-        
-        const getUrl = urlParams.toString() ? `${webhookUrl}?${urlParams.toString()}` : webhookUrl;
-        
-        response = await fetch(getUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'N8N-Dashboard-Trigger/1.0',
-          },
-        });
+      clearTimeout(timeoutId);
 
-        if (response.ok) {
-          console.log('GET request successful');
-        } else {
-          throw new Error(`GET failed with ${response.status}`);
-        }
-      } catch (getError) {
-        console.log('GET request also failed:', getError.message);
+      if (!response.ok) {
+        console.error(`N8N webhook failed with status ${response.status}`);
+        const errorText = await response.text();
         
-        // Strategy 3: For complex workflows, try with minimal payload
-        if (isComplexWorkflow) {
-          try {
-            console.log('Trying minimal payload for complex workflow...');
-            response = await fetch(webhookUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'N8N-Dashboard-Trigger/1.0',
-              },
-              body: JSON.stringify({ trigger: true, timestamp: Date.now() }),
-            });
-
-            if (!response.ok) {
-              throw new Error(`Minimal payload failed with ${response.status}`);
-            }
-            console.log('Minimal payload request successful');
-          } catch (minimalError) {
-            console.log('All strategies failed');
-            response = null;
-            lastError = minimalError;
-          }
-        } else {
-          response = null;
-        }
-      }
-    }
-
-    if (!response || !response.ok) {
-      const errorText = response ? await response.text() : 'No response received';
-      const status = response ? response.status : 500;
-      
-      console.error('N8N webhook failed after all strategies:', { 
-        status, 
-        statusText: response?.statusText || 'Unknown', 
-        body: errorText,
-        lastError: lastError?.message
-      });
-      
-      let errorMessage = `HTTP ${status}: ${response?.statusText || 'Unknown error'}`;
-      
-      if (status === 404) {
-        if (errorText.includes('not registered')) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        
+        if (response.status === 404) {
           errorMessage = isComplexWorkflow 
-            ? 'Complex N8N workflow not registered. Please: 1) Activate the workflow, 2) Execute it manually once, 3) Then try again.'
-            : 'N8N webhook not registered. Please activate your workflow or click "Test workflow" in N8N first.';
-        } else {
-          errorMessage = isComplexWorkflow
-            ? 'Complex workflow webhook not found. Ensure workflow is activated and has been executed at least once.'
-            : 'Webhook not found. Please check the URL and ensure your N8N workflow is activated.';
+            ? 'Complex workflow webhook not found. Ensure: 1) Workflow is ACTIVATED, 2) Has been executed manually once, 3) Uses "Respond to Webhook" node for immediate response.'
+            : 'Webhook not found. Please activate your N8N workflow and execute it manually once.';
+        } else if (response.status >= 500) {
+          errorMessage = 'N8N server error. Check your workflow configuration and N8N server logs.';
         }
-      } else if (status >= 500) {
-        errorMessage = isComplexWorkflow
-          ? 'N8N server error. Complex workflows may have timeout or configuration issues. Check N8N logs.'
-          : 'N8N server error. Please check your workflow configuration.';
+        
+        return new Response(
+          JSON.stringify({ 
+            error: errorMessage,
+            details: errorText,
+            status: response.status,
+            isComplexWorkflow
+          }),
+          { 
+            status: response.status, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
       }
+
+      const result = await response.text();
+      console.log('N8N webhook success:', result);
       
+      // Try to parse as JSON, fallback to text
+      let parsedResult;
+      try {
+        parsedResult = JSON.parse(result);
+      } catch {
+        parsedResult = { 
+          message: result || 'Workflow triggered successfully',
+          status: 'started',
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      // For complex workflows, always indicate successful start
+      if (isComplexWorkflow) {
+        parsedResult = {
+          ...parsedResult,
+          status: 'started',
+          message: parsedResult.message || 'Complex workflow started successfully',
+          note: 'Workflow is running in background'
+        };
+      }
+
       return new Response(
-        JSON.stringify({ 
-          error: errorMessage,
-          details: errorText,
-          status: status,
-          isComplexWorkflow
-        }),
+        JSON.stringify(parsedResult),
         { 
-          status: status, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
-    }
 
-    const result = await response.text();
-    console.log('N8N webhook success:', result);
-    
-    // Try to parse as JSON, fallback to text
-    let parsedResult;
-    try {
-      parsedResult = JSON.parse(result);
-    } catch {
-      parsedResult = { message: result };
-    }
-
-    return new Response(
-      JSON.stringify(parsedResult),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (error.name === 'AbortError') {
+        console.log(`Workflow timed out after ${timeoutMs}ms`);
+        
+        if (isComplexWorkflow) {
+          // For complex workflows, timeout is expected and acceptable
+          return new Response(
+            JSON.stringify({ 
+              status: 'started',
+              message: 'Complex workflow started (timeout expected)',
+              note: 'Workflow continues running in N8N',
+              executionId: `timeout-${Date.now()}`
+            }),
+            { 
+              status: 200, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        } else {
+          // For simple workflows, timeout indicates a problem
+          return new Response(
+            JSON.stringify({ 
+              error: 'Simple workflow timed out - this may indicate a configuration issue',
+              suggestion: 'Check if workflow is properly activated and responding',
+              timeout: timeoutMs
+            }),
+            { 
+              status: 408, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
       }
-    );
+      
+      throw error; // Re-throw non-timeout errors
+    }
 
   } catch (error) {
     console.error('Webhook proxy error:', error);
