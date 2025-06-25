@@ -159,12 +159,28 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
     try {
       const updatedWorkflows = await Promise.all(
         editedWorkflows.map(async (workflow) => {
-          return await DatabaseService.saveWorkflow(workflow);
+          // Check if workflow exists in original workflows array
+          const existingWorkflow = workflows.find(w => w.id === workflow.id);
+          
+          if (existingWorkflow) {
+            // Update existing workflow
+            await DatabaseService.updateWorkflow(workflow);
+            return workflow;
+          } else {
+            // Create new workflow
+            await DatabaseService.createWorkflow(workflow);
+            return workflow;
+          }
         })
       );
       
       onUpdateWorkflows(updatedWorkflows);
       onClose();
+      
+      toast({
+        title: "Changes Saved",
+        description: "Workflow configurations have been saved successfully.",
+      });
     } catch (error) {
       console.error('Error saving workflows:', error);
       toast({
