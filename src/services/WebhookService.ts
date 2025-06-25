@@ -1,3 +1,4 @@
+
 export class WebhookService {
   static async triggerWorkflow(webhookUrl: string, params?: any): Promise<any> {
     if (!webhookUrl) {
@@ -7,9 +8,12 @@ export class WebhookService {
     try {
       console.log('Triggering workflow via proxy:', { webhookUrl, params });
       
-      // Use shorter timeout for initial trigger - long workflows should respond immediately
+      // Determine if this is likely a complex workflow based on URL patterns
+      const isComplexWorkflow = this.isLikelyComplexWorkflow(webhookUrl);
+      const timeout = isComplexWorkflow ? 15000 : 30000; // 15s for complex, 30s for simple
+      
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
       
       const response = await fetch('https://jjvyyrlxlljryvaegegz.supabase.co/functions/v1/webhook-proxy', {
         method: 'POST',
@@ -20,8 +24,8 @@ export class WebhookService {
         body: JSON.stringify({ 
           webhookUrl, 
           params,
-          isComplexWorkflow: true,
-          expectedTimeout: true // Flag to indicate timeout is expected for long workflows
+          isComplexWorkflow,
+          timeout
         }),
         signal: controller.signal
       });
@@ -39,7 +43,7 @@ export class WebhookService {
             '1. Your N8N workflow is ACTIVATED\n' +
             '2. The workflow has been executed at least once manually\n' +
             '3. The webhook URL is correct\n' +
-            '4. For long workflows: Use "Respond to Webhook" node immediately after trigger';
+            (isComplexWorkflow ? '4. For complex workflows: Add "Respond to Webhook" node immediately after trigger' : '');
         } else if (response.status >= 500) {
           errorMessage = 'N8N Server Error (500+). This usually means:\n\n' +
             '1. N8N server is experiencing issues\n' +
@@ -56,19 +60,39 @@ export class WebhookService {
       
       return result;
     } catch (error) {
-      // Handle timeout specifically for long workflows
+      // Handle timeout specifically for complex workflows
       if (error.name === 'AbortError') {
-        console.log('Workflow trigger timed out - this is expected for long workflows');
-        return { 
-          status: 'triggered', 
-          message: 'Workflow started successfully (timeout expected for long workflows)',
-          executionId: `timeout-${Date.now()}`
-        };
+        const isComplexWorkflow = this.isLikelyComplexWorkflow(webhookUrl);
+        if (isComplexWorkflow) {
+          console.log('Complex workflow trigger timed out - this may be expected');
+          return { 
+            status: 'triggered', 
+            message: 'Complex workflow started (may continue running in background)',
+            executionId: `timeout-${Date.now()}`
+          };
+        } else {
+          throw new Error('Workflow request timed out. Please check your N8N workflow configuration.');
+        }
       }
       
       console.error('Webhook error:', error);
       throw error;
     }
+  }
+
+  static isLikelyComplexWorkflow(webhookUrl: string): boolean {
+    // Only consider workflows with specific indicators as complex
+    const complexIndicators = [
+      'influencer',
+      'monitoring', 
+      'multi-step',
+      'complex',
+      'chain',
+      'pipeline'
+    ];
+    
+    const url = webhookUrl.toLowerCase();
+    return complexIndicators.some(indicator => url.includes(indicator));
   }
 
   static async testConnection(webhookUrl: string): Promise<boolean> {
@@ -85,9 +109,8 @@ export class WebhookService {
         message: 'Connection test from N8N Dashboard'
       };
 
-      // Use shorter timeout for connection tests
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout for tests
 
       const response = await fetch('https://jjvyyrlxlljryvaegegz.supabase.co/functions/v1/webhook-proxy', {
         method: 'POST',
@@ -97,7 +120,8 @@ export class WebhookService {
         },
         body: JSON.stringify({ 
           webhookUrl, 
-          params: testPayload 
+          params: testPayload,
+          isTest: true
         }),
         signal: controller.signal
       });
@@ -138,7 +162,7 @@ export class WebhookService {
           '1. Go to your N8N workflow\n' +
           '2. Make sure it\'s ACTIVATED (toggle switch on)\n' +
           '3. Execute the workflow manually once (click "Test workflow")\n' +
-          '4. For long workflows: Add "Respond to Webhook" node immediately after trigger\n' +
+          '4. For complex workflows: Add "Respond to Webhook" node immediately after trigger\n' +
           '5. Set Response Mode to "Using \'Respond to Webhook\' Node"\n\n' +
           'This prevents timeouts and allows complex workflows to run properly.';
       }

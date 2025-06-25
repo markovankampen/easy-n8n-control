@@ -51,16 +51,30 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
     }
   };
 
-  // Determine if workflow is likely a long-running one based on execution time
-  const isLikelyLongWorkflow = (workflow: Workflow) => {
-    return workflow.avgExecutionTime > 30000; // More than 30 seconds
+  // Determine if workflow is likely complex based on name, description, or execution time
+  const isLikelyComplexWorkflow = (workflow: Workflow) => {
+    const complexIndicators = [
+      'influencer', 'monitoring', 'multi-step', 'complex', 'chain', 'pipeline'
+    ];
+    
+    const searchText = `${workflow.name} ${workflow.description}`.toLowerCase();
+    const hasComplexKeywords = complexIndicators.some(indicator => 
+      searchText.includes(indicator)
+    );
+    
+    // Also consider workflows with long execution times as complex
+    const hasLongExecutionTime = workflow.avgExecutionTime > 30000;
+    
+    return hasComplexKeywords || hasLongExecutionTime;
   };
 
   const handleTriggerWorkflow = (workflow: Workflow) => {
-    // Show warning for long workflows
-    if (isLikelyLongWorkflow(workflow)) {
+    const isComplex = isLikelyComplexWorkflow(workflow);
+    
+    // Show warning for complex workflows
+    if (isComplex) {
       toast({
-        title: "Long Workflow Detected",
+        title: "Complex Workflow Detected",
         description: "This workflow may take time to complete. Consider using 'Respond to Webhook' node for immediate feedback.",
         duration: 5000
       });
@@ -77,9 +91,9 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
   const handleSubmitWithInput = (workflowId: string) => {
     const workflow = workflows.find(w => w.id === workflowId);
     
-    if (workflow && isLikelyLongWorkflow(workflow)) {
+    if (workflow && isLikelyComplexWorkflow(workflow)) {
       toast({
-        title: "Long Workflow Starting",
+        title: "Complex Workflow Starting",
         description: "This may take several minutes. The workflow will continue running even if the dashboard shows a timeout.",
         duration: 6000
       });
@@ -174,161 +188,165 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {workflows.map((workflow) => (
-          <Card key={workflow.id} className={`transition-all duration-200 hover:shadow-md ${getStatusColor(workflow.status)}`}>
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-lg text-gray-900">{workflow.name}</CardTitle>
-                    {isLikelyLongWorkflow(workflow) && (
-                      <Timer className="h-4 w-4 text-amber-500" />
-                    )}
+        {workflows.map((workflow) => {
+          const isComplex = isLikelyComplexWorkflow(workflow);
+          
+          return (
+            <Card key={workflow.id} className={`transition-all duration-200 hover:shadow-md ${getStatusColor(workflow.status)}`}>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg text-gray-900">{workflow.name}</CardTitle>
+                      {isComplex && (
+                        <Timer className="h-4 w-4 text-amber-500" />
+                      )}
+                    </div>
+                    <CardDescription className="text-sm text-gray-600">{workflow.description}</CardDescription>
                   </div>
-                  <CardDescription className="text-sm text-gray-600">{workflow.description}</CardDescription>
+                  {getStatusIcon(workflow.status)}
                 </div>
-                {getStatusIcon(workflow.status)}
-              </div>
-            </CardHeader>
-            
-            <CardContent className="space-y-4">
-              {/* Workflow Stats */}
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="text-center p-2 bg-white/50 rounded">
-                  <div className="font-semibold text-gray-900">{workflow.executionCount}</div>
-                  <div className="text-gray-600">Runs</div>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                {/* Workflow Stats */}
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="text-center p-2 bg-white/50 rounded">
+                    <div className="font-semibold text-gray-900">{workflow.executionCount}</div>
+                    <div className="text-gray-600">Runs</div>
+                  </div>
+                  <div className="text-center p-2 bg-white/50 rounded">
+                    <div className="font-semibold text-gray-900">{workflow.successRate}%</div>
+                    <div className="text-gray-600">Success</div>
+                  </div>
+                  <div className="text-center p-2 bg-white/50 rounded">
+                    <div className="font-semibold text-gray-900">{workflow.avgExecutionTime}ms</div>
+                    <div className="text-gray-600">Avg Time</div>
+                  </div>
                 </div>
-                <div className="text-center p-2 bg-white/50 rounded">
-                  <div className="font-semibold text-gray-900">{workflow.successRate}%</div>
-                  <div className="text-gray-600">Success</div>
-                </div>
-                <div className="text-center p-2 bg-white/50 rounded">
-                  <div className="font-semibold text-gray-900">{workflow.avgExecutionTime}ms</div>
-                  <div className="text-gray-600">Avg Time</div>
-                </div>
-              </div>
 
-              {/* Last Run */}
-              {workflow.lastRun && (
-                <div className="text-xs text-gray-600 text-center">
-                  Last run: {workflow.lastRun.toLocaleString()}
-                </div>
-              )}
+                {/* Last Run */}
+                {workflow.lastRun && (
+                  <div className="text-xs text-gray-600 text-center">
+                    Last run: {workflow.lastRun.toLocaleString()}
+                  </div>
+                )}
 
-              {/* Long Workflow Warning */}
-              {isLikelyLongWorkflow(workflow) && (
-                <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded flex items-center">
-                  <Timer className="h-3 w-3 mr-1" />
-                  Long workflow detected - use "Respond to Webhook" node for best results
-                </div>
-              )}
+                {/* Complex Workflow Warning */}
+                {isComplex && (
+                  <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded flex items-center">
+                    <Timer className="h-3 w-3 mr-1" />
+                    Complex workflow detected - add "Respond to Webhook" node for best results
+                  </div>
+                )}
 
-              {/* Action Buttons */}
-              <div className="flex space-x-2">
-                {workflow.requiresInput ? (
-                  <Dialog open={inputDialogOpen === workflow.id} onOpenChange={(open) => !open && setInputDialogOpen(null)}>
-                    <DialogTrigger asChild>
-                      <Button
-                        className="flex-1"
-                        disabled={workflow.status === 'running' || !workflow.webhookUrl}
-                        onClick={() => handleTriggerWorkflow(workflow)}
-                      >
-                        <Play className="h-4 w-4 mr-2" />
-                        {workflow.status === 'running' ? 'Running...' : 'Run Workflow'}
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle className="text-gray-900 flex items-center gap-2">
-                          {workflow.name}
-                          {isLikelyLongWorkflow(workflow) && (
-                            <Timer className="h-4 w-4 text-amber-500" />
-                          )}
-                        </DialogTitle>
-                        <DialogDescription className="text-gray-600">
-                          This workflow requires input parameters. Please fill out the form below.
-                          {isLikelyLongWorkflow(workflow) && (
-                            <div className="mt-2 text-amber-600">
-                              ⚠️ This appears to be a long-running workflow. It may continue executing even after timeout.
-                            </div>
-                          )}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        {renderInputForm(workflow)}
-                        <div className="flex justify-end space-x-2">
-                          <Button variant="outline" onClick={() => setInputDialogOpen(null)}>
-                            Cancel
-                          </Button>
-                          <Button onClick={() => handleSubmitWithInput(workflow.id)}>
-                            <Play className="h-4 w-4 mr-2" />
-                            Run Workflow
-                          </Button>
+                {/* Action Buttons */}
+                <div className="flex space-x-2">
+                  {workflow.requiresInput ? (
+                    <Dialog open={inputDialogOpen === workflow.id} onOpenChange={(open) => !open && setInputDialogOpen(null)}>
+                      <DialogTrigger asChild>
+                        <Button
+                          className="flex-1"
+                          disabled={workflow.status === 'running' || !workflow.webhookUrl}
+                          onClick={() => handleTriggerWorkflow(workflow)}
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          {workflow.status === 'running' ? 'Running...' : 'Run Workflow'}
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle className="text-gray-900 flex items-center gap-2">
+                            {workflow.name}
+                            {isComplex && (
+                              <Timer className="h-4 w-4 text-amber-500" />
+                            )}
+                          </DialogTitle>
+                          <DialogDescription className="text-gray-600">
+                            This workflow requires input parameters. Please fill out the form below.
+                            {isComplex && (
+                              <div className="mt-2 text-amber-600">
+                                ⚠️ This appears to be a complex workflow. It may continue executing even after timeout.
+                              </div>
+                            )}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          {renderInputForm(workflow)}
+                          <div className="flex justify-end space-x-2">
+                            <Button variant="outline" onClick={() => setInputDialogOpen(null)}>
+                              Cancel
+                            </Button>
+                            <Button onClick={() => handleSubmitWithInput(workflow.id)}>
+                              <Play className="h-4 w-4 mr-2" />
+                              Run Workflow
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                ) : (
-                  <Button
-                    className="flex-1"
-                    disabled={workflow.status === 'running' || !workflow.webhookUrl}
-                    onClick={() => handleTriggerWorkflow(workflow)}
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    {workflow.status === 'running' ? 'Running...' : 'Run Workflow'}
-                  </Button>
+                      </DialogContent>
+                    </Dialog>
+                  ) : (
+                    <Button
+                      className="flex-1"
+                      disabled={workflow.status === 'running' || !workflow.webhookUrl}
+                      onClick={() => handleTriggerWorkflow(workflow)}
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      {workflow.status === 'running' ? 'Running...' : 'Run Workflow'}
+                    </Button>
+                  )}
+
+                  {/* Test Connection Button */}
+                  {workflow.webhookUrl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={testingConnection === workflow.id}
+                      onClick={() => handleTestConnection(workflow)}
+                      className="px-3"
+                    >
+                      {testingConnection === workflow.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <HelpCircle className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+
+                {!workflow.webhookUrl && (
+                  <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded flex items-center">
+                    <Settings className="h-3 w-3 mr-1" />
+                    Webhook URL not configured
+                  </div>
                 )}
 
-                {/* Test Connection Button */}
+                {/* Enhanced Troubleshooting Tips */}
                 {workflow.webhookUrl && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={testingConnection === workflow.id}
-                    onClick={() => handleTestConnection(workflow)}
-                    className="px-3"
-                  >
-                    {testingConnection === workflow.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <HelpCircle className="h-4 w-4" />
-                    )}
-                  </Button>
+                  <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                    <div className="font-medium mb-1 flex items-center gap-1">
+                      <Zap className="h-3 w-3" />
+                      {isComplex ? 'Complex Workflow Setup:' : 'Quick Setup Tips:'}
+                    </div>
+                    <div className="space-y-1 text-blue-700">
+                      <div>• Ensure N8N workflow is activated</div>
+                      <div>• Execute workflow manually in N8N first</div>
+                      {isComplex ? (
+                        <>
+                          <div>• Add "Respond to Webhook" node after trigger</div>
+                          <div>• Set Response Mode to "Using 'Respond to Webhook' Node"</div>
+                          <div>• This prevents timeouts for long workflows</div>
+                        </>
+                      ) : (
+                        <div>• Use "Test Connection" to verify setup</div>
+                      )}
+                    </div>
+                  </div>
                 )}
-              </div>
-
-              {!workflow.webhookUrl && (
-                <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded flex items-center">
-                  <Settings className="h-3 w-3 mr-1" />
-                  Webhook URL not configured
-                </div>
-              )}
-
-              {/* Enhanced Troubleshooting Tips for Long Workflows */}
-              {workflow.webhookUrl && (
-                <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
-                  <div className="font-medium mb-1 flex items-center gap-1">
-                    <Zap className="h-3 w-3" />
-                    {isLikelyLongWorkflow(workflow) ? 'Long Workflow Setup:' : 'Quick Setup Tips:'}
-                  </div>
-                  <div className="space-y-1 text-blue-700">
-                    <div>• Ensure N8N workflow is activated</div>
-                    <div>• Execute workflow manually in N8N first</div>
-                    {isLikelyLongWorkflow(workflow) ? (
-                      <>
-                        <div>• Add "Respond to Webhook" node after trigger</div>
-                        <div>• Set Response Mode to "Using 'Respond to Webhook' Node"</div>
-                        <div>• This prevents timeouts for long workflows</div>
-                      </>
-                    ) : (
-                      <div>• Use "Test Connection" to verify setup</div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {workflows.length === 0 && (
