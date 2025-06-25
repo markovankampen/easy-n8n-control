@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Workflow } from '../pages/Index';
-import { Play, Settings, AlertCircle, CheckCircle, Loader2, Clock, HelpCircle } from 'lucide-react';
+import { Play, Settings, AlertCircle, CheckCircle, Loader2, Clock, HelpCircle, Timer, Zap } from 'lucide-react';
 import { WebhookService } from '../services/WebhookService';
 import { useToast } from '@/hooks/use-toast';
 
@@ -51,7 +50,21 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
     }
   };
 
+  // Determine if workflow is likely a long-running one based on execution time
+  const isLikelyLongWorkflow = (workflow: Workflow) => {
+    return workflow.avgExecutionTime > 30000; // More than 30 seconds
+  };
+
   const handleTriggerWorkflow = (workflow: Workflow) => {
+    // Show warning for long workflows
+    if (isLikelyLongWorkflow(workflow)) {
+      toast({
+        title: "Long Workflow Detected",
+        description: "This workflow may take time to complete. Consider using 'Respond to Webhook' node for immediate feedback.",
+        duration: 5000
+      });
+    }
+
     if (workflow.requiresInput && workflow.inputSchema) {
       setInputDialogOpen(workflow.id);
       setInputValues({});
@@ -61,6 +74,16 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
   };
 
   const handleSubmitWithInput = (workflowId: string) => {
+    const workflow = workflows.find(w => w.id === workflowId);
+    
+    if (workflow && isLikelyLongWorkflow(workflow)) {
+      toast({
+        title: "Long Workflow Starting",
+        description: "This may take several minutes. The workflow will continue running even if the dashboard shows a timeout.",
+        duration: 6000
+      });
+    }
+
     onTriggerWorkflow(workflowId, inputValues);
     setInputDialogOpen(null);
     setInputValues({});
@@ -155,7 +178,12 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <CardTitle className="text-lg text-gray-900">{workflow.name}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg text-gray-900">{workflow.name}</CardTitle>
+                    {isLikelyLongWorkflow(workflow) && (
+                      <Timer className="h-4 w-4 text-amber-500" title="Long-running workflow" />
+                    )}
+                  </div>
                   <CardDescription className="text-sm text-gray-600">{workflow.description}</CardDescription>
                 </div>
                 {getStatusIcon(workflow.status)}
@@ -186,6 +214,14 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                 </div>
               )}
 
+              {/* Long Workflow Warning */}
+              {isLikelyLongWorkflow(workflow) && (
+                <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded flex items-center">
+                  <Timer className="h-3 w-3 mr-1" />
+                  Long workflow detected - use "Respond to Webhook" node for best results
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="flex space-x-2">
                 {workflow.requiresInput ? (
@@ -202,9 +238,19 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle className="text-gray-900">{workflow.name}</DialogTitle>
+                        <DialogTitle className="text-gray-900 flex items-center gap-2">
+                          {workflow.name}
+                          {isLikelyLongWorkflow(workflow) && (
+                            <Timer className="h-4 w-4 text-amber-500" />
+                          )}
+                        </DialogTitle>
                         <DialogDescription className="text-gray-600">
                           This workflow requires input parameters. Please fill out the form below.
+                          {isLikelyLongWorkflow(workflow) && (
+                            <div className="mt-2 text-amber-600">
+                              ⚠️ This appears to be a long-running workflow. It may continue executing even after timeout.
+                            </div>
+                          )}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
@@ -257,14 +303,25 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({
                 </div>
               )}
 
-              {/* Troubleshooting Tips */}
+              {/* Enhanced Troubleshooting Tips for Long Workflows */}
               {workflow.webhookUrl && (
                 <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
-                  <div className="font-medium mb-1">Troubleshooting Tips:</div>
+                  <div className="font-medium mb-1 flex items-center gap-1">
+                    <Zap className="h-3 w-3" />
+                    {isLikelyLongWorkflow(workflow) ? 'Long Workflow Setup:' : 'Quick Setup Tips:'}
+                  </div>
                   <div className="space-y-1 text-blue-700">
                     <div>• Ensure N8N workflow is activated</div>
                     <div>• Execute workflow manually in N8N first</div>
-                    <div>• Use "Test Connection" to verify setup</div>
+                    {isLikelyLongWorkflow(workflow) ? (
+                      <>
+                        <div>• Add "Respond to Webhook" node after trigger</div>
+                        <div>• Set Response Mode to "Using 'Respond to Webhook' Node"</div>
+                        <div>• This prevents timeouts for long workflows</div>
+                      </>
+                    ) : (
+                      <div>• Use "Test Connection" to verify setup</div>
+                    )}
                   </div>
                 </div>
               )}
