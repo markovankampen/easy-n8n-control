@@ -23,7 +23,7 @@ serve(async (req) => {
       );
     }
 
-    const { webhookUrl, params, isComplexWorkflow } = await req.json();
+    const { webhookUrl, params, isComplexWorkflow, isTest } = await req.json();
 
     if (!webhookUrl) {
       return new Response(
@@ -38,14 +38,21 @@ serve(async (req) => {
     console.log('Proxying webhook request to:', webhookUrl);
     console.log('With params:', params);
     console.log('Complex workflow mode:', isComplexWorkflow);
+    console.log('Is test:', isTest);
 
-    // For complex workflows, try different strategies
+    // Set timeout based on workflow type
+    const timeout = isTest ? 10000 : (isComplexWorkflow ? 15000 : 30000);
+    console.log('Timeout:', timeout);
+
     let response;
     let lastError;
 
-    // Strategy 1: Standard POST request
+    // Strategy 1: Try POST request first
     try {
       console.log('Trying POST request...');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
       response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
@@ -53,7 +60,10 @@ serve(async (req) => {
           'User-Agent': 'N8N-Dashboard-Trigger/1.0',
         },
         body: JSON.stringify(params || {}),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         console.log('POST request successful');
@@ -64,11 +74,14 @@ serve(async (req) => {
       console.log('POST request failed:', error.message);
       lastError = error;
       
-      // Strategy 2: GET request as fallback
+      // Strategy 2: Try GET request as fallback (works for many N8N webhooks)
       try {
         console.log('Trying GET request as fallback...');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
         const urlParams = new URLSearchParams();
-        if (params) {
+        if (params && typeof params === 'object') {
           Object.entries(params).forEach(([key, value]) => {
             urlParams.append(key, String(value));
           });
@@ -82,7 +95,10 @@ serve(async (req) => {
             'Content-Type': 'application/json',
             'User-Agent': 'N8N-Dashboard-Trigger/1.0',
           },
+          signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
 
         if (response.ok) {
           console.log('GET request successful');
@@ -91,32 +107,8 @@ serve(async (req) => {
         }
       } catch (getError) {
         console.log('GET request also failed:', getError.message);
-        
-        // Strategy 3: For complex workflows, try with minimal payload
-        if (isComplexWorkflow) {
-          try {
-            console.log('Trying minimal payload for complex workflow...');
-            response = await fetch(webhookUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'N8N-Dashboard-Trigger/1.0',
-              },
-              body: JSON.stringify({ trigger: true, timestamp: Date.now() }),
-            });
-
-            if (!response.ok) {
-              throw new Error(`Minimal payload failed with ${response.status}`);
-            }
-            console.log('Minimal payload request successful');
-          } catch (minimalError) {
-            console.log('All strategies failed');
-            response = null;
-            lastError = minimalError;
-          }
-        } else {
-          response = null;
-        }
+        response = null;
+        lastError = getError;
       }
     }
 
@@ -124,7 +116,7 @@ serve(async (req) => {
       const errorText = response ? await response.text() : 'No response received';
       const status = response ? response.status : 500;
       
-      console.error('N8N webhook failed after all strategies:', { 
+      console.error('N8N webhook failed:', { 
         status, 
         statusText: response?.statusText || 'Unknown', 
         body: errorText,
@@ -134,27 +126,16 @@ serve(async (req) => {
       let errorMessage = `HTTP ${status}: ${response?.statusText || 'Unknown error'}`;
       
       if (status === 404) {
-        if (errorText.includes('not registered')) {
-          errorMessage = isComplexWorkflow 
-            ? 'Complex N8N workflow not registered. Please: 1) Activate the workflow, 2) Execute it manually once, 3) Then try again.'
-            : 'N8N webhook not registered. Please activate your workflow or click "Test workflow" in N8N first.';
-        } else {
-          errorMessage = isComplexWorkflow
-            ? 'Complex workflow webhook not found. Ensure workflow is activated and has been executed at least once.'
-            : 'Webhook not found. Please check the URL and ensure your N8N workflow is activated.';
-        }
+        errorMessage = 'N8N webhook not registered. Please activate your workflow and execute it manually once in N8N.';
       } else if (status >= 500) {
-        errorMessage = isComplexWorkflow
-          ? 'N8N server error. Complex workflows may have timeout or configuration issues. Check N8N logs.'
-          : 'N8N server error. Please check your workflow configuration.';
+        errorMessage = 'N8N server error. Please check your workflow configuration.';
       }
       
       return new Response(
         JSON.stringify({ 
           error: errorMessage,
           details: errorText,
-          status: status,
-          isComplexWorkflow
+          status: status
         }),
         { 
           status: status, 
@@ -187,7 +168,9 @@ serve(async (req) => {
     
     let errorMessage = 'Unknown error occurred';
     if (error instanceof Error) {
-      if (error.message.includes('fetch')) {
+      if (error.name === 'AbortError') {
+        errorMessage = 'Request timed out. The webhook may be taking too long to respond.';
+      } else if (error.message.includes('fetch')) {
         errorMessage = 'Failed to connect to N8N webhook. Please check the URL and N8N instance availability.';
       } else {
         errorMessage = error.message;
